@@ -6,7 +6,7 @@ Globals:
     Runtime: nodejs12.x
     Timeout: 10
     Tracing: Active
-    MemorySize: 256
+    MemorySize: 1024
 
 Parameters:
   CorsOrigin:
