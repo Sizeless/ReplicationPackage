@@ -4,7 +4,7 @@ export GIT_MERGE_AUTOEDIT=no
 git pull
 git checkout $EXP_BRANCH
 git pull
-git merge master --no-edit
+git merge main --no-edit
 git add *
 git commit -m "automerge"
 

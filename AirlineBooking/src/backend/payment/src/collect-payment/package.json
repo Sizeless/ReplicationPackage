@@ -1,0 +1,13 @@
+{
+  "name": "long.ma.collect-payment-metrics",
+  "version": "1.0.0",
+  "description": "Auto generated function",
+  "main": "collect.js",
+  "author": "Long Bui",
+  "license": "MIT",
+  "dependencies": {
+    "aws-sdk": "^2.642.0",
+    "node-fetch": "^2.6.1",
+    "uuid": "^8.1.0"
+  }
+}
