@@ -104,9 +104,14 @@ We have made the following changes to the original system:
 
 ### Workload
 For this case study, we configured the following user behavior:
+1. Search for a flight
+2. Tokenize credit card details using [Stripe](https://stripe.com/)
+3. Place a charge on a credit card using [Stripe](https://stripe.com/)
+4. Book a flight
+5. List booked flights
+6. Display loyalty points
 
-
-This rather simple sequence of requests already ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 128 users at a total rate of 200 requests per second for ten minutes, resulting in at least 20000 executions per function. 
+This sequence of requests ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 128 users at a total rate of 200 requests per second for ten minutes, resulting in at least 20000 executions per function. 
 
 ### Replicating our measurements
 To replicate our measurements, run the following commands in the folder `AirlineBooking`:
