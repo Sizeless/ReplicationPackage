@@ -20,8 +20,33 @@ We have made the following changes to the original system:
 
 
 ### Workload
+For this case study, we configured the following user behavior:
+1. Insert a new temperature event
+2. Insert a new forecast event
+3. Insert a new state change event
+4. Retrieve the ten latest events
+5. List all events
+
+This sequence of requests ensures that all functions are executed. This behavior is traversed concurrently by 24 users at a total rate of 10 requests per second for ten minutes.
+
 
 ### Replicating our measurements
+To replicate our measurements, run the following commands:
+```
+docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t eventprocessing
+docker run -d --name eventprocessing eventprocessing
+docker exec -it eventprocessing bash /ReplicationPackage/EventProcessing/runner.sh
+```
+
+Make sure to 43place `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
+
+To retrieve the collected monitoring data run the following command:
+```
+docker cp eventprocessing:/results .
+```
+If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
+    
+
 
 ## WildRydes Case Study
 
