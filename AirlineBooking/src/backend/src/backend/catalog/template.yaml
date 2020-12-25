@@ -1,0 +1,98 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Globals:
+  Function:
+    Runtime: nodejs12.x
+    MemorySize: 256
+
+Parameters:
+  Stage:
+    Type: String
+    Description: Environment stage or git branch
+
+  FlightTable:
+    Type: String
+    Description: Flight Table
+
+Resources:
+  ReserveFlightMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: long.ma.reserve-flight-metrics
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  ReleaseFlightMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: long.ma.release-flight-metrics
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  ReserveFlight:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: reserve.handler
+      CodeUri: src/reserve-flight
+      Timeout: 10
+      Environment:
+        Variables:
+          FLIGHT_TABLE_NAME: !Ref FlightTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            Action: dynamodb:PutItem
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ReserveFlightMetricsTable}"
+
+  ReleaseFlight:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: release.handler
+      CodeUri: src/release-flight
+      Timeout: 10
+      Environment:
+        Variables:
+          FLIGHT_TABLE_NAME: !Ref FlightTable
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            Action: dynamodb:PutItem
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ReleaseFlightMetricsTable}"
+
+  ReserveFlightParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub /${Stage}/service/catalog/reserveFunction
+      Description: Reserve Flight Lambda ARN
+      Type: String
+      Value: !Sub ${ReserveFlight.Arn}
+
+  ReleaseFlightParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub /${Stage}/service/catalog/releaseFunction
+      Description: Release Flight Lambda ARN
+      Type: String
+      Value: !Sub ${ReleaseFlight.Arn}
+
+Outputs:
+  ReserveFlightFunction:
+    Value: !Sub ${ReserveFlight.Arn}
+    Description: Collect Payment Lambda Function
+
+  ReleaseFlightFunction:
+    Value: !Sub ${ReserveFlight.Arn}
+    Description: Collect Payment Lambda Function
