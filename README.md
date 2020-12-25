@@ -1,7 +1,7 @@
-# ReplicationPackage
+# Sizeless Replication Package
 
 ## Event Processing Case Study
-![Event Processing Case Study Architecture](/images/EventProcessing.png)
+![Event Processing Case Study Architecture](https://github.com/Sizeless/ReplicationPackage/tree/main/images/EventProcessing.png)
 
 ## WildRydes Case Study
 
