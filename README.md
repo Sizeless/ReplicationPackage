@@ -1,6 +1,6 @@
 # Sizeless Replication Package
 The replication package for our paper _Sizeless: Predicting the optimal size of serverless functions_ consists of five parts:
-* Automated measurement harness for the airline booking case study
+* [Automated measurement harness for the airline booking case study](#Airline-Booking-Case-Study)
 * Automated measurement harness for the event processing case study
 * Automated measurement harness for the facial recognition case study
 * Synthetic function generator used to generate our training dataset
