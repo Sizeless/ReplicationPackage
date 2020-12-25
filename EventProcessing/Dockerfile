@@ -34,7 +34,7 @@ RUN apt-get install openjdk-8-jre-headless --yes
 
 RUN git config --global user.name "Your Name"
 RUN git config --global user.email "you@example.com"
-RUN git clone --branch master https://github.com/Sizeless/ReplicationPackage.git
+RUN git clone --branch main https://github.com/Sizeless/ReplicationPackage.git
 WORKDIR /ReplicationPackage/EventProcessing/
 
 RUN chmod 777 /ReplicationPackage/EventProcessing/run.sh
