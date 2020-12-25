@@ -91,5 +91,5 @@ docker cp facialrecognition:/results .
 ```
 If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
 
-Measuring the ten repetitions for six different function memory sizes took onl ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
+Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
 ## Serverless Airline Booking Case Study
