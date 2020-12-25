@@ -31,14 +31,14 @@ This sequence of requests ensures that all functions are executed. For our case 
 
 
 ### Replicating our measurements
-To replicate our measurements, run the following commands:
+To replicate our measurements, run the following commands in the folder `EventProcessing`:
 ```
 docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t eventprocessing
 docker run -d --name eventprocessing eventprocessing
 docker exec -it eventprocessing bash /ReplicationPackage/EventProcessing/runner.sh
 ```
 
-Make sure to 43place `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
+Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
 
 To retrieve the collected monitoring data run the following command:
 ```
@@ -66,5 +66,30 @@ We have made the following changes to the original system:
 * Upgraded from nodejs10.x to nodejs12.x
 * Fixed an issue where the setup function copyS3object used the cfnresponse package which is not available when using zifiles for the deployment (see [AWS lambda: No module named 'cfnresponse'](https://stackoverflow.com/questions/49885243/aws-lambda-no-module-named-cfnresponse))
 * Added a lambda layer containing ImageMagick for the thumbnail function, as this is no longer available in the newer runtimes (see [ImageMagick for AWS Lambda](https://github.com/serverlesspub/imagemagick-aws-lambda-2))
+* After looking for the face in the database, the function _CheckFaceDuplicate_ always returns that the image is not yet contained, as otherwise the workload would have to consist of thousands of images that Rekognition recognises as a single face.
 
+### Workload
+For this case study, we configured the following user behavior:
+1. Upload valid picture
+2. Upload invalid picture
+
+This rather simple sequence of requests already ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 12 users at a total rate of 10 requests per second for five minutes, resulting in at least 1500 executions per function. This case study uses a comparatively short measurement duration and load, as the usage of AWS Rekognition can get quite expensive.
+
+### Replicating our measurements
+To replicate our measurements, run the following commands in the folder `FacialRecognition`:
+```
+docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t facialrecognition
+docker run -d --name eventprocessing facialrecognition
+docker exec -it facialrecognition bash /ReplicationPackage/FacialRecognition/runner.sh
+```
+
+Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
+
+To retrieve the collected monitoring data run the following command:
+```
+docker cp facialrecognition:/results .
+```
+If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
+
+Measuring the ten repetitions for six different function memory sizes took onl ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
 ## Serverless Airline Booking Case Study
