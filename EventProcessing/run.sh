@@ -50,6 +50,10 @@ echo "duration,maxRss,fsRead,fsWrite,vContextSwitches,ivContextSwitches,userDiff
 aws dynamodb scan --table-name formatforecast --query "Items[*].[duration.N,maxRss.N,fsRead.N,fsWrite.N,vContextSwitches.N,ivContextSwitches.N,userDiff.N,sysDiff.N,rss.N,heapTotal.N,heapUsed.N,external.N,elMin.N,elMax.N,elMean.N,elStd.N,bytecodeMetadataSize.N,heapPhysical.N,heapAvailable.N,heapLimit.N,mallocMem.N,netByRx.N,netPkgRx.N,netByTx.N,netPkgTx.N]" --output json | jq -r '.[] | @csv' >> formatforecast.csv
 echo "duration,maxRss,fsRead,fsWrite,vContextSwitches,ivContextSwitches,userDiff,sysDiff,rss,heapTotal,heapUsed,external,elMin,elMax,elMean,elStd,bytecodeMetadataSize,heapPhysical,heapAvailable,heapLimit,mallocMem,netByRx,netPkgRx,netByTx,netPkgTx" > formatstatechanged.csv
 aws dynamodb scan --table-name formatstatechanged --query "Items[*].[duration.N,maxRss.N,fsRead.N,fsWrite.N,vContextSwitches.N,ivContextSwitches.N,userDiff.N,sysDiff.N,rss.N,heapTotal.N,heapUsed.N,external.N,elMin.N,elMax.N,elMean.N,elStd.N,bytecodeMetadataSize.N,heapPhysical.N,heapAvailable.N,heapLimit.N,mallocMem.N,netByRx.N,netPkgRx.N,netByTx.N,netPkgTx.N]" --output json | jq -r '.[] | @csv' >> formatstatechanged.csv
+echo "duration,maxRss,fsRead,fsWrite,vContextSwitches,ivContextSwitches,userDiff,sysDiff,rss,heapTotal,heapUsed,external,elMin,elMax,elMean,elStd,bytecodeMetadataSize,heapPhysical,heapAvailable,heapLimit,mallocMem,netByRx,netPkgRx,netByTx,netPkgTx" > latest.csv
+aws dynamodb scan --table-name latest --query "Items[*].[duration.N,maxRss.N,fsRead.N,fsWrite.N,vContextSwitches.N,ivContextSwitches.N,userDiff.N,sysDiff.N,rss.N,heapTotal.N,heapUsed.N,external.N,elMin.N,elMax.N,elMean.N,elStd.N,bytecodeMetadataSize.N,heapPhysical.N,heapAvailable.N,heapLimit.N,mallocMem.N,netByRx.N,netPkgRx.N,netByTx.N,netPkgTx.N]" --output json | jq -r '.[] | @csv' >> latest.csv
+echo "duration,maxRss,fsRead,fsWrite,vContextSwitches,ivContextSwitches,userDiff,sysDiff,rss,heapTotal,heapUsed,external,elMin,elMax,elMean,elStd,bytecodeMetadataSize,heapPhysical,heapAvailable,heapLimit,mallocMem,netByRx,netPkgRx,netByTx,netPkgTx" > list.csv
+aws dynamodb scan --table-name list --query "Items[*].[duration.N,maxRss.N,fsRead.N,fsWrite.N,vContextSwitches.N,ivContextSwitches.N,userDiff.N,sysDiff.N,rss.N,heapTotal.N,heapUsed.N,external.N,elMin.N,elMax.N,elMean.N,elStd.N,bytecodeMetadataSize.N,heapPhysical.N,heapAvailable.N,heapLimit.N,mallocMem.N,netByRx.N,netPkgRx.N,netByTx.N,netPkgTx.N]" --output json | jq -r '.[] | @csv' >> list.csv
 
 # Move results
 mkdir -p /results/$EXP_NAME/Repetition_$EXP_REPETITION
@@ -57,7 +61,8 @@ mv eventinserter.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/eventinserter
 mv ingest.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/ingest.csv
 mv formattemperature.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/formattemperature.csv
 mv formatforecast.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/formatforecast.csv
-mv formatstatechanged.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/formatstatechanged.csv
+mv list.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/list.csv
+mv latest.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/latest.csv
 
 # Shutdown
 serverless remove
