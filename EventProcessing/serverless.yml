@@ -1,0 +1,316 @@
+service: bt-evtproc
+
+custom:
+  # Modify Queue names here
+  temperature_format_topic: format-temperature
+  forecast_format_topic: format-forecast
+  state_change_format_topic: format-state-change
+  error_topic: error
+  sqs_queue_name: EventIngestQueue
+  database:
+    # DO NOT CHANGE THIS
+    db_name: aurora${opt:stage, self:provider.stage}
+    # Set the username of the administrator
+    username: master
+    # Set the password of the administrator
+    password: aCo2xeuph5wahr7s
+    # DO NOT CHANGE THE FOLLOWING PARAMETERS
+    host:
+      Fn::GetAtt: [AuroraRDSCluster, Endpoint.Address]
+    port:
+      Fn::GetAtt: [AuroraRDSCluster, Endpoint.Port]
+    vpc_cidr: 10
+
+plugins:
+  - serverless-pseudo-parameters
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: eu-west-1
+  environment:
+    CLOUD_REGION: '#{AWS::Region}'
+    CLOUD_ACCOUNT_ID: '#{AWS::AccountId}'
+  iamRoleStatements:
+    - Effect: "Allow"
+      Resource: "*"
+      Action:
+        - "sns:*"
+        - "sqs:*"
+        - dynamodb:PutItem
+
+functions:
+  ingest:
+    handler: ingest.handleIngest
+    environment:
+      TEMPERATURE_TOPIC: ${self:custom.temperature_format_topic}
+      TEMPERATURE_TOPIC_ARN: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.temperature_format_topic}
+      FORECAST_TOPIC: ${self:custom.forecast_format_topic}
+      FORECAST_TOPIC_ARN: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.forecast_format_topic}
+      STATE_CHANGE_TOPIC: ${self:custom.state_change_format_topic}
+      STATE_CHANGE_TOPIC_ARN: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.state_change_format_topic}
+    events:
+      - http:
+          path: ingest
+          method: POST
+  format_temperature:
+    handler: formatprocessing.formatTemperatureEvent
+    events:
+      - sns: ${self:custom.temperature_format_topic}
+    onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.error_topic}
+    environment:
+      QUEUE_NAME: ${self:custom.sqs_queue_name}
+      QUEUE_ARN: arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:${self:custom.sqs_queue_name}
+  format_forecast:
+    handler: formatprocessing.formatForecastEvent
+    events:
+      - sns: ${self:custom.forecast_format_topic}
+    onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.error_topic}
+    environment:
+      QUEUE_NAME: ${self:custom.sqs_queue_name}
+      QUEUE_ARN: arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:${self:custom.sqs_queue_name}
+  format_state_change:
+    handler: formatprocessing.formatStateChangeEvent
+    events:
+      - sns: ${self:custom.state_change_format_topic}
+    onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.error_topic}
+    environment:
+      QUEUE_NAME: ${self:custom.sqs_queue_name}
+      QUEUE_ARN: arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:${self:custom.sqs_queue_name}
+  format_func_on_error:
+    handler: formatprocessing.handleErr
+    events:
+      - sns: ${self:custom.error_topic}
+  event_inserter:
+    handler: eventinserter.insertEvent
+    timeout: 45
+    events:
+      - sqs:
+          arn: arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:${self:custom.sqs_queue_name}
+    environment:
+      RDS_HOST: ${self:custom.database.host}
+      RDS_PORT: ${self:custom.database.port}
+      RDS_DB_NAME: ${self:custom.database.db_name}
+      RDS_USERNAME: ${self:custom.database.username}
+      RDS_PASSWORD: ${self:custom.database.password}
+    vpc:
+      securityGroupIds:
+        - Fn::GetAtt: [ServerlessVPC, DefaultSecurityGroup]
+      subnetIds:
+        - Ref: ServerlessSubnetA
+        - Ref: ServerlessSubnetB
+        - Ref: ServerlessSubnetC
+  list:
+    handler: list.handleList
+    events:
+      - http:
+          path: list
+          method: GET
+    environment:
+      RDS_HOST: ${self:custom.database.host}
+      RDS_PORT: ${self:custom.database.port}
+      RDS_DB_NAME: ${self:custom.database.db_name}
+      RDS_USERNAME: ${self:custom.database.username}
+      RDS_PASSWORD: ${self:custom.database.password}
+    vpc:
+      securityGroupIds:
+        - Fn::GetAtt: [ServerlessVPC, DefaultSecurityGroup]
+      subnetIds:
+        - Ref: ServerlessSubnetA
+        - Ref: ServerlessSubnetB
+        - Ref: ServerlessSubnetC
+  latest:
+    handler: list.handleLatest
+    events:
+      - http:
+          path: latest
+          method: GET
+    environment:
+      RDS_HOST: ${self:custom.database.host}
+      RDS_PORT: ${self:custom.database.port}
+      RDS_DB_NAME: ${self:custom.database.db_name}
+      RDS_USERNAME: ${self:custom.database.username}
+      RDS_PASSWORD: ${self:custom.database.password}
+    vpc:
+      securityGroupIds:
+        - Fn::GetAtt: [ServerlessVPC, DefaultSecurityGroup]
+      subnetIds:
+        - Ref: ServerlessSubnetA
+        - Ref: ServerlessSubnetB
+        - Ref: ServerlessSubnetC
+
+resources:
+  Resources:
+    IngestTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: ingest
+        BillingMode: PAY_PER_REQUEST
+    FormatTemperatureTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: formattemperature
+        BillingMode: PAY_PER_REQUEST
+    FormatForecastTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: formatforecast
+        BillingMode: PAY_PER_REQUEST
+    FormatStateChangedTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: formatstatechanged
+        BillingMode: PAY_PER_REQUEST
+    EventInserterTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: eventinserter
+        BillingMode: PAY_PER_REQUEST
+    SQSQueue:
+      Type: "AWS::SQS::Queue"
+      Properties:
+        QueueName: ${self:custom.sqs_queue_name}
+        VisibilityTimeout: 60
+    # The following code is inspired by:
+    # https://medium.com/mos-engineering/serverless-rdbs-part-1-set-up-aws-rds-aurora-and-lambda-with-serverless-4c2a5146faf4
+    # Modifcations of parameter names have happened
+    ServerlessVPC:
+      Type: AWS::EC2::VPC
+      Properties:
+        CidrBlock: ${self:custom.database.vpc_cidr}.0.0.0/16
+        EnableDnsSupport: true
+        EnableDnsHostnames: true
+        InstanceTenancy: default
+        Tags:
+          - Key: Name
+            Value: serverlessvpc
+    ServerlessSubnetA:
+      DependsOn: ServerlessVPC
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: ServerlessVPC
+        AvailabilityZone: ${self:provider.region}a
+        CidrBlock: ${self:custom.database.vpc_cidr}.0.0.0/24
+    ServerlessSubnetB:
+      DependsOn: ServerlessVPC
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: ServerlessVPC
+        AvailabilityZone: ${self:provider.region}b
+        CidrBlock: ${self:custom.database.vpc_cidr}.0.1.0/24
+    ServerlessSubnetC:
+      DependsOn: ServerlessVPC
+      Type: AWS::EC2::Subnet
+      Properties:
+        VpcId:
+          Ref: ServerlessVPC
+        AvailabilityZone: ${self:provider.region}c
+        CidrBlock: ${self:custom.database.vpc_cidr}.0.2.0/24
+    # RDS DB config
+    AuroraSubnetGroup:
+      Type: AWS::RDS::DBSubnetGroup
+      Properties:
+        DBSubnetGroupDescription: "Aurora Subnet Group"
+        SubnetIds:
+          - Ref: ServerlessSubnetA
+          - Ref: ServerlessSubnetB
+          - Ref: ServerlessSubnetC
+    AuroraRDSClusterParameter:
+      Type: AWS::RDS::DBClusterParameterGroup
+      Properties:
+        Description: Parameter group for the Serverless Aurora RDS DB.
+        Family: aurora-mysql5.7
+        Parameters:
+          character_set_database: "utf32"
+    AuroraRDSInstanceParameter:
+      Type: AWS::RDS::DBParameterGroup
+      Properties:
+        Description: Parameter group for the Serverless Aurora RDS DB.
+        Family: aurora-mysql5.7
+        Parameters:
+          sql_mode: IGNORE_SPACE
+          max_connections: 100
+          wait_timeout: 900
+          interactive_timeout: 900
+    AuroraRDSCluster:
+      Type: "AWS::RDS::DBCluster"
+      Properties:
+        MasterUsername: ${self:custom.database.username}
+        MasterUserPassword: ${self:custom.database.password}
+        DBSubnetGroupName:
+          Ref: AuroraSubnetGroup
+        Engine: aurora-mysql
+        EngineVersion: "5.7"
+        DatabaseName: ${self:custom.database.db_name}
+        BackupRetentionPeriod: 3
+        DBClusterParameterGroupName:
+          Ref: AuroraRDSClusterParameter
+        VpcSecurityGroupIds:
+          - Fn::GetAtt: ServerlessVPC.DefaultSecurityGroup
+    AuroraRDSInstance:
+      Type: "AWS::RDS::DBInstance"
+      Properties:
+        DBInstanceClass: db.t2.medium
+        DBSubnetGroupName:
+          Ref: AuroraSubnetGroup
+        Engine: aurora-mysql
+        EngineVersion: "5.7"
+        PubliclyAccessible: false
+        DBParameterGroupName:
+          Ref: AuroraRDSInstanceParameter
+        DBClusterIdentifier:
+          Ref: AuroraRDSCluster
+
+    SNSDynamoEndpoint:
+      Type: AWS::EC2::VPCEndpoint
+      Properties: 
+        ServiceName: 'com.amazonaws.eu-west-1.dynamodb'
+        VpcEndpointType: Gateway
+        VpcId: !Ref ServerlessVPC
+    VpcEndpointLambdaSecurityGroup:
+      Type: 'AWS::EC2::SecurityGroup'
+      Properties:
+        VpcId: !Ref ServerlessVPC
+        GroupDescription: 'Security group for VPC Endpoint Lambda'

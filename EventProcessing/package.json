@@ -1,0 +1,12 @@
+{
+  "name": "bt-evtproc",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {
+    "serverless-mysql": "^1.4.0",
+    "uuid": "^8.1.0"
+  },
+  "devDependencies": {
+    "serverless-pseudo-parameters": "^2.4.0"
+  }
+}
