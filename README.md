@@ -51,7 +51,7 @@ Measuring the ten repetitions for six different function memory sizes took 2-3 d
 
 
 ## Facial Recognition Case Study
-This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop, which was also used in the evaluation of the paper `Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement` by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recogniion, matching, and indexing.
+This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop, which was also used in the evaluation of the paper _Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement_ by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recogniion, matching, and indexing.
 
 ### System Architecture
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing.png?raw=true" width="400"><img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing_stepfunctions.png?raw=true" width="400">
