@@ -79,7 +79,7 @@ This rather simple sequence of requests already ensures that all functions are e
 To replicate our measurements, run the following commands in the folder `FacialRecognition`:
 ```
 docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t facialrecognition
-docker run -d --name eventprocessing facialrecognition
+docker run -d --name facialrecognition facialrecognition
 docker exec -it facialrecognition bash /ReplicationPackage/FacialRecognition/runner.sh
 ```
 
@@ -96,3 +96,32 @@ Measuring the ten repetitions for six different function memory sizes took only 
 
 ### System Architecture
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
+
+### Changelog
+We have made the following changes to the original system:
+* As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
+* 
+
+### Workload
+For this case study, we configured the following user behavior:
+
+
+This rather simple sequence of requests already ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 128 users at a total rate of 200 requests per second for ten minutes, resulting in at least 20000 executions per function. 
+
+### Replicating our measurements
+To replicate our measurements, run the following commands in the folder `AirlineBooking`:
+```
+docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t airlinebooking
+docker run -d --name airlinebooking airlinebooking
+docker exec -it airlinebooking bash /ReplicationPackage/FacialRecognition/runner.sh
+```
+
+Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
+
+To retrieve the collected monitoring data run the following command:
+```
+docker cp airlinebooking:/results .
+```
+If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
+
+Measuring the ten repetitions for six different function memory sizes took about a week and incurred costs of ~500$.
