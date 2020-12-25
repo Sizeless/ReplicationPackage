@@ -1,0 +1,137 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+
+Parameters:
+  Stage:
+    Type: String
+    Description: Environment stage or git branch
+
+Globals:
+  Function:
+    Timeout: 5
+    Tracing: Active
+    Runtime: nodejs12.x
+    MemorySize: 256
+    Environment:
+      Variables:
+        POWERTOOLS_SERVICE_NAME: payment
+        LOG_LEVEL: INFO
+
+Resources:
+  CollectPaymentMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: long.ma.collect-payment-metrics
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  RefundPaymentMetricsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: long.ma.refund-payment-metrics
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+
+  CollectPayment:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub Airline-CollectPayment-${Stage}
+      Handler: collect.handler
+      CodeUri: src/collect-payment
+      Timeout: 10
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            Action: dynamodb:PutItem
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${CollectPaymentMetricsTable}"
+      Environment:
+        Variables:
+          PAYMENT_API_URL: !ImportValue CaptureApiUrl
+          STAGE: !Ref Stage
+
+  RefundPayment:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub Airline-RefundPayment-${Stage}
+      Handler: refund.handler
+      CodeUri: src/refund-payment
+      Timeout: 10
+      Policies:
+        - Version: "2012-10-17"
+          Statement:
+            Action: dynamodb:PutItem
+            Effect: Allow
+            Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${RefundPaymentMetricsTable}"
+      Environment:
+        Variables:
+          PAYMENT_API_URL: !ImportValue RefundApiUrl
+          STAGE: !Ref Stage
+
+  CollectPaymentParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub /${Stage}/service/payment/function/collect
+      Description: Collect Payment Lambda ARN
+      Type: String
+      Value: !Sub ${CollectPayment.Arn}
+
+  RefundPaymentParameter:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: !Sub /${Stage}/service/payment/function/refund
+      Description: Refund Payment Lambda ARN
+      Type: String
+      Value: !Sub ${RefundPayment.Arn}
+
+  PaymentCaptureEndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Stage}/service/payment/api/capture/url"
+      Type: String
+      Value: !ImportValue CaptureApiUrl
+
+  PaymentChargeEndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Stage}/service/payment/api/charge/url"
+      Type: String
+      Value: !ImportValue ChargeApiUrl
+
+  PaymentRefundEndpointParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub "/${Stage}/service/payment/api/refund/url"
+      Type: String
+      Value: !ImportValue RefundApiUrl
+
+Outputs:
+  CollectPaymentFunction:
+    Value: !Sub ${CollectPayment.Arn}
+    Description: Collect Payment Lambda Function
+
+  RefundPaymentFunction:
+    Value: !Sub ${RefundPayment.Arn}
+    Description: Refund Payment Lambda Function
+
+  PaymentCaptureUrl:
+    Value: !ImportValue CaptureApiUrl
+    Description: Payment Endpoint for capturing payments
+
+  PaymentChargeUrl:
+    Value: !ImportValue ChargeApiUrl
+    Description: Payment Endpoint for collecting payments
+
+  RefundApiUrl:
+    Value: !ImportValue RefundApiUrl
+    Description: Payment Endpoint for refunding payments
