@@ -1,4 +1,63 @@
 # Sizeless Replication Package
+The replication package for our paper _Sizeless: Predicting the optimal size of serverless functions_ consists of five parts:
+* Automated measurement harness for the airline booking case study
+* Automated measurement harness for the event processing case study
+* Automated measurement harness for the facial recognition case study
+* Synthetic function generator used to generate our training dataset
+* All measurement data and all analysis scripts required to reproduce any results/figures from the paper
+
+## Airline Booking Case Study
+The Airline Booking application is a fully serverless web application that implements the flight booking aspect of an airline on AWS ([GitHub](https://github.com/aws-samples/aws-serverless-airline-booking)). Customers can search for flights, book flights, pay using a credit card, and earn loyalty points with each booking. The airline booking applicaion was the subject of the [AWS Build On Serverless](https://pages.awscloud.com/GLOBAL-devstrategy-OE-BuildOnServerless-2019-reg-event.html) series and presented inthe AWS re:Invent session [Production-grade full-stack apps with AWS Amplify](https://www.youtube.com/watch?v=DcrtvgaVdCU).
+
+### System Architecture
+<p align="center">
+<img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
+</p>
+
+The frontend of the serverless airline is implemented using CloudFront, Amplify/S3, Vue.js, the Quasar framework, and stripe elements. 
+This frontend sends queries to five backend APIs: _Search Flights_, _Create Charge_, _Create Booking_, _List Bookings_, and _Get Loyalty_. The five APIs are implemented as GraphQL queries using AWS AppSync, a managed GraphQL service. 
+The _Search Flights_ API retrieves all flights for a given date, arrival airport and departure airport from a DynamoDB table using the DynamoDB GraphQL resolver. 
+The _Create Charge_ API executes the _ChargeCard_ Lambda function, which wraps a call to the Stripe API. 
+The _Create Booking_ API executes a step function workflow that reserves a seat on a flight, creates an unconfirmed booking, and attempts to collect the charge on the customer's credit card. This workflow includes the functions _ReserveBooking_, _CollectPayment_, _ConfirmBooking_, and _NotifyBooking_, which edit DynamoDB tables, manage calls to Stripe, and push a message to an SNS topic. The _IngestLoyalty_ function reads from this SNS topic to update the loyalty points in a DynamoDB table. Whenen the _Get Loyalty_ API is called, the function _GetLoyalty_ retrieves the relevant loyalty data from this DynamoDB table.
+
+### Changelog
+We have made the following changes to the original system:
+* As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
+* Configured step functions workflow as an express workflow to reduce execution cost
+* The Stripe API test mode has a concurrency limit of 25 requests. After contacting the support, we adapted the application to distribute the requests to the StripeAPI across multiple Stripe keys.
+* Reconfigured the Stripe integration to timeout and retry long-running requests, which significantly reduced the numberof failed requests.
+* We requested an increase of the Lambda concurrent executions service quota from the default of 1.000 to 5.000.
+* Implemented caching for SSM parameters to reduce the number of requests to the System Manager Parameter Store.
+* Enabled the higher throughput option of the System Manager Parameter Store.
+
+### Workload
+For this case study, we configured the following user behavior:
+1. Search for a flight
+2. Tokenize credit card details using [Stripe](https://stripe.com/)
+3. Place a charge on a credit card using [Stripe](https://stripe.com/)
+4. Book a flight
+5. List booked flights
+6. Display loyalty points
+
+This sequence of requests ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 128 users at a total rate of 200 requests per second for ten minutes, resulting in at least 20000 executions per function. 
+
+### Replicating our measurements
+To replicate our measurements, run the following commands in the folder `AirlineBooking`:
+```
+docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t airlinebooking
+docker run -d --name airlinebooking airlinebooking
+docker exec -it airlinebooking bash /ReplicationPackage/FacialRecognition/runner.sh
+```
+
+Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
+
+To retrieve the collected monitoring data run the following command:
+```
+docker cp airlinebooking:/results .
+```
+If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
+
+Measuring the ten repetitions for six different function memory sizes took about a week and incurred costs of ~500$.
 
 ## Event Processing Case Study
 The event processing case study uses the event processing system that was introduced in the paper _Facing the Unplanned Migration of Serverless Applications: A Study on Portability Problems, Solutions, and Dead Ends_ by Yussupov et al. and can be found [here](https://github.com/iaas-splab/faas-migration/tree/master/Event-Processing). In this
@@ -97,55 +156,3 @@ docker cp facialrecognition:/results .
 If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
 
 Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
-## Airline Booking Case Study
-The Airline Booking application is a fully serverless web application that implements the flight booking aspect of an airline on AWS ([GitHub](https://github.com/aws-samples/aws-serverless-airline-booking)). Customers can search for flights, book flights, pay using a credit card, and earn loyalty points with each booking. The airline booking applicaion was the subject of the [AWS Build On Serverless](https://pages.awscloud.com/GLOBAL-devstrategy-OE-BuildOnServerless-2019-reg-event.html) series and presented inthe AWS re:Invent session [Production-grade full-stack apps with AWS Amplify](https://www.youtube.com/watch?v=DcrtvgaVdCU).
-
-### System Architecture
-<p align="center">
-<img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
-</p>
-
-The frontend of the serverless airline is implemented using CloudFront, Amplify/S3, Vue.js, the Quasar framework, and stripe elements. 
-This frontend sends queries to five backend APIs: _Search Flights_, _Create Charge_, _Create Booking_, _List Bookings_, and _Get Loyalty_. The five APIs are implemented as GraphQL queries using AWS AppSync, a managed GraphQL service. 
-The _Search Flights_ API retrieves all flights for a given date, arrival airport and departure airport from a DynamoDB table using the DynamoDB GraphQL resolver. 
-The _Create Charge_ API executes the _ChargeCard_ Lambda function, which wraps a call to the Stripe API. 
-The _Create Booking_ API executes a step function workflow that reserves a seat on a flight, creates an unconfirmed booking, and attempts to collect the charge on the customer's credit card. This workflow includes the functions _ReserveBooking_, _CollectPayment_, _ConfirmBooking_, and _NotifyBooking_, which edit DynamoDB tables, manage calls to Stripe, and push a message to an SNS topic. The _IngestLoyalty_ function reads from this SNS topic to update the loyalty points in a DynamoDB table. Whenen the _Get Loyalty_ API is called, the function _GetLoyalty_ retrieves the relevant loyalty data from this DynamoDB table.
-
-### Changelog
-We have made the following changes to the original system:
-* As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
-* Configured step functions workflow as an express workflow to reduce execution cost
-* The Stripe API test mode has a concurrency limit of 25 requests. After contacting the support, we adapted the application to distribute the requests to the StripeAPI across multiple Stripe keys.
-* Reconfigured the Stripe integration to timeout and retry long-running requests, which significantly reduced the numberof failed requests.
-* We requested an increase of the Lambda concurrent executions service quota from the default of 1.000 to 5.000.
-* Implemented caching for SSM parameters to reduce the number of requests to the System Manager Parameter Store.
-* Enabled the higher throughput option of the System Manager Parameter Store.
-
-### Workload
-For this case study, we configured the following user behavior:
-1. Search for a flight
-2. Tokenize credit card details using [Stripe](https://stripe.com/)
-3. Place a charge on a credit card using [Stripe](https://stripe.com/)
-4. Book a flight
-5. List booked flights
-6. Display loyalty points
-
-This sequence of requests ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 128 users at a total rate of 200 requests per second for ten minutes, resulting in at least 20000 executions per function. 
-
-### Replicating our measurements
-To replicate our measurements, run the following commands in the folder `AirlineBooking`:
-```
-docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t airlinebooking
-docker run -d --name airlinebooking airlinebooking
-docker exec -it airlinebooking bash /ReplicationPackage/FacialRecognition/runner.sh
-```
-
-Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
-
-To retrieve the collected monitoring data run the following command:
-```
-docker cp airlinebooking:/results .
-```
-If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
-
-Measuring the ten repetitions for six different function memory sizes took about a week and incurred costs of ~500$.
