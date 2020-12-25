@@ -104,6 +104,12 @@ Measuring the ten repetitions for six different function memory sizes took only 
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
 </p>
 
+The frontend of the serverless airline is implemented using CloudFront, Amplify/S3, Vue.js, the Quasar framework, and stripe elements. 
+This frontend sends queries to five backend APIs: _Search Flights_, _Create Charge_, _Create Booking_, _List Bookings_, and _Get Loyalty_. The five APIs are implemented as GraphQL queries using AWS AppSync, a managed GraphQL service. 
+The _Search Flights_ API retrieves all flights for a given date, arrival airport and departure airport from a DynamoDB table using the DynamoDB GraphQL resolver. 
+The _Create Charge_ API executes the _ChargeCard_ Lambda function, which wraps a call to the Stripe API. 
+The _Create Booking_ API executes a step function workflow that reserves a seat on a flight, creates an unconfirmed booking, and attempts to collect the charge on the customer's credit card. This workflow includes the functions _ReserveBooking_, _CollectPayment_, _ConfirmBooking_, and _NotifyBooking_, which edit DynamoDB tables, manage calls to Stripe, and push a message to an SNS topic. The _IngestLoyalty_ function reads from this SNS topic to update the loyalty points in a DynamoDB table. Whenen the _Get Loyalty_ API is called, the function _GetLoyalty_ retrieves the relevant loyalty data from this DynamoDB table.
+
 ### Changelog
 We have made the following changes to the original system:
 * As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
