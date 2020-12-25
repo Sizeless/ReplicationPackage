@@ -61,6 +61,7 @@ mv eventinserter.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/eventinserter
 mv ingest.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/ingest.csv
 mv formattemperature.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/formattemperature.csv
 mv formatforecast.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/formatforecast.csv
+mv formatstatechanged.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/formatstatechanged.csv
 mv list.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/list.csv
 mv latest.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/latest.csv
 
