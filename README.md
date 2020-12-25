@@ -5,7 +5,9 @@ The event processing case study uses the event processing system that was introd
 paper, the authors investigate the challenges of migrating serverless, FaaS-based applications across cloud providers by migrating different systems across multiple cloud providers. For our case study, we use the AWS implementation of the IoT-inspired event processing system, where the data obtained from multiple sensors are aggregated for further processing.
 
 ### System Architecture
+<p align="center">
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/EventProcessing.png?raw=true" width="800">
+</p>
 
 This system consits of an API Gateway, six Lambda functions, an Aurora database, three SNS topics, and a SQS queue. The API Gateway exposes three endpoints: `/ingest`, `/list`, `/latest`. Any request to `/ingest` triggers the Lambda function _ingest_, which publishes the event to one of the three available SNS topics depending on the event type. This triggers one of the functions _formatTemperature_, _formatForecast_, and _formatStateChanged_, which format/enrich the event and insert it into the SQS queue. Items from this queue are processed by the function _eventInserter_, which writes them to the Aurora database. The API Gateway endpoints `/list` and `/latest` trigger the Lambda functions _list_ and _latest_, which retrieve the ten latest events or all events from the Aurora database, respectively.
 
@@ -54,7 +56,9 @@ Measuring the ten repetitions for six different function memory sizes took 2-3 d
 This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop ([Github](https://github.com/aws-samples/aws-serverless-workshops/tree/master/ImageProcessing)), which was also used in the evaluation of the paper _Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement_ by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recogniion, matching, and indexing.
 
 ### System Architecture
+<p align="center">
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing.png?raw=true" width="400"><img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing_stepfunctions.png?raw=true" width="400">
+</p>
 
 This system uses a step functions workflow, six Lambda functions, S3 for thumbnail storage, DynamoDB to store metadata, and AWS Rekognition for facial detection and recognition. Whenever the step functions workflow is executed, the function _FaceDetection_ uses AWS Rekognition to detect any faces in the image. If the photo contains more than one or no face at all, the function _PhotoDoesNotMeetRequirement_ is called, which is a placeholder function for a messaging functionality. Otherwise, the function _CheckFaceDuplicate_ queries the AWS Rekognition collection to check if this face is already registered. If it is already registered, the function _PhotoDoesNotMeetRequirement_ is called, if it is a previously unknown face, then the function _AddFaceToIndex_ uploads the face to the AWS Rekognition collection and the function _Thumbnail_ uses [ImageMagick](https://imagemagick.org/index.php) to create a thumbnail based on the detected image. Finally, the function _Persistmetadata_ saves the image metadata to a DynamoDB table.
 
@@ -96,7 +100,9 @@ Measuring the ten repetitions for six different function memory sizes took only 
 ## Serverless Airline Booking Case Study
 
 ### System Architecture
+<p align="center">
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
+</p>
 
 ### Changelog
 We have made the following changes to the original system:
