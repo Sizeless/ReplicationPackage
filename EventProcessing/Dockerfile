@@ -38,7 +38,13 @@ RUN git clone --branch main https://github.com/Sizeless/ReplicationPackage.git
 WORKDIR /ReplicationPackage/EventProcessing/
 
 RUN chmod 777 /ReplicationPackage/EventProcessing/run.sh
-RUN chmod 777 /ReplicationPackage/EventProcessing/Lambda/meta-run.sh
+RUN chmod 777 /ReplicationPackage/EventProcessing/meta-run.sh
+RUN chmod 777 /ReplicationPackage/EventProcessing/generateConstantLoad.sh
+RUN dos2unix /ReplicationPackage/EventProcessing/run.sh
+RUN dos2unix /ReplicationPackage/EventProcessing/meta-run.sh
+RUN dos2unix /ReplicationPackage/EventProcessing/runner.sh
+RUN dos2unix /ReplicationPackage/EventProcessing/generateConstantLoad.sh
+
 RUN git config --global core.editor "cat"
 RUN git add *
 RUN git commit -m "don't delete this"
