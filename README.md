@@ -10,6 +10,14 @@ paper, the authors investigate the challenges of migrating serverless, FaaS-base
 This system consits of an API Gateway, six Lambda functions, an Aurora database, three SNS topics, and a SQS queue. The API Gateway exposes three endpoints: `/ingest`, `/list`, `/latest`. Any request to `/ingest` triggers the Lambda function _ingest_, which publishes the event to one of the three available SNS topics depending on the event type. This triggers on of the functions _formatTemperature_, _formatForecast_, _formatStateChanged_ which format/enrich the event and insert it into the SQS queue. Items from this queue are processed by the function _eventInserter_, which writes them to the Aurora database. The API Gateway endpoints `/list` and `/latest` trigger the Lambda functions _list_ and _latest_, which retrieve the ten latest events or all events from the Aurora database, respectively.
 
 ### Changelog
+We have made the following changes to the original system:
+* As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each funcion where the monitoring data is collected.
+* The functions that interact with the Aurora database are within a VPC. We added a DynamoDB VPC Endpoint, so these Lambda functions can connect to the DynamoDB tables containing the metrics.
+* Upgraded from nodejs8.10 to nodejs12.X
+* Fixed an issue where newer versions of the serverless framework no longer support the following syntax:
+    * Old: `- Fn::GetAtt: ServerlessVPC.DefaultSecurityGroup`
+    * New: `- Fn::GetAtt: [ServerlessVPC, DefaultSecurityGroup]`
+
 
 ### Workload
 
