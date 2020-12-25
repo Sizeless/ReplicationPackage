@@ -1,0 +1,33 @@
+{
+  "name": "api-lambda-stripe-charge",
+  "version": "4.4.1",
+  "description": "",
+  "main": "charge.js",
+  "scripts": {
+    "test": "jest --color",
+    "prepack": "npm install --production",
+    "prepackage": "tsc",
+    "package": "aws cloudformation package --template-file template.yaml --output-template-file output.yaml --s3-bucket app-repo-components",
+    "deploy": "aws cloudformation deploy --template-file output.yaml --stack-name api-lambda-stripe-charge --capabilities CAPABILITY_IAM",
+    "describe": "aws cloudformation describe-stacks --stack-name api-lambda-stripe-charge --query Stacks[].Outputs[].OutputValue --output text",
+    "qd": "npm run prepack && npm run package && npm run deploy && npm run describe"
+  },
+  "keywords": [],
+  "author": "Aleksandar Simovic <alexander.simovic@gmail.com>",
+  "license": "MIT",
+  "jest": {
+    "roots": [
+      "<rootDir>/src/",
+      "<rootDir>/tests/"
+    ]
+  },
+  "dependencies": {
+    "aws-xray-sdk": "^2.3.4",
+    "stripe": "^8.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^8.10.38",
+    "jest": "^24.8.0",
+    "typescript": "^3.2.4"
+  }
+}

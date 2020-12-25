@@ -1,0 +1,68 @@
+[
+    {
+        "name": "Brussels Airport",
+        "code": "BRU",
+        "country": "BE",
+        "city": "Brussels"
+    },
+    {
+        "name": "Berlin-Schönefeld Airport",
+        "code": "SXF",
+        "country": "DE",
+        "city": "Berlin"
+    },
+    {
+        "name": "Frankfurt am Main Airport",
+        "code": "FRA",
+        "country": "DE",
+        "city": "Frankfurt am Main"
+    },
+    {
+        "name": "Munich Airport",
+        "code": "MUC",
+        "country": "DE",
+        "city": "Munich"
+    },
+    {
+        "name": "Helsinki Vantaa Airport",
+        "code": "HEL",
+        "country": "FI",
+        "city": "Helsinki"
+    },
+    {
+        "name": "Manchester Airport",
+        "code": "MAN",
+        "country": "GB",
+        "city": "Manchester"
+    },
+    {
+        "name": "London Luton Airport",
+        "code": "LTN",
+        "country": "GB",
+        "city": "London"
+    },
+    {
+        "name": "Southampton Airport",
+        "code": "SOU",
+        "country": "GB",
+        "city": "Southampton"
+    },
+    {
+        "name": "London Gatwick Airport",
+        "code": "LGW",
+        "country": "GB",
+        "city": "London"
+    },
+    {
+        "name": "London Heathrow Airport",
+        "code": "LHR",
+        "country": "GB",
+        "city": "London"
+    },
+    {
+        "name": "Glasgow International Airport",
+        "code": "GLA",
+        "country": "GB",
+        "city": "Glasgow"
+    }
+]
