@@ -232,7 +232,7 @@ Resources:
     Properties:
       Handler: index.handler
       Runtime: nodejs12.x
-      MemorySize: 1536
+      MemorySize: 512
       Timeout: 300
       Policies:
         Statement:
