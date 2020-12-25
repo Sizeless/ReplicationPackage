@@ -55,5 +55,7 @@ This case study uses the facial recognition/image processing segment of the AWS 
 
 ### System Architecture
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing.png?raw=true" width="400"><img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing_stepfunctions.png?raw=true" width="400">
+This system uses a step functions workflow, six Lambda functions, S3 for thumbnail storage, DynamoDB to store metadata, and AWS Rekogntion for facial detection and recognition. 
+
 
 ## Serverless Airline Booking Case Study
