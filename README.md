@@ -51,11 +51,20 @@ Measuring the ten repetitions for six different function memory sizes took 2-3 d
 
 
 ## Facial Recognition Case Study
-This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop, which was also used in the evaluation of the paper _Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement_ by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recogniion, matching, and indexing.
+This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop ([Github](https://github.com/aws-samples/aws-serverless-workshops/tree/master/ImageProcessing)), which was also used in the evaluation of the paper _Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement_ by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recogniion, matching, and indexing.
 
 ### System Architecture
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing.png?raw=true" width="400"><img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing_stepfunctions.png?raw=true" width="400">
-This system uses a step functions workflow, six Lambda functions, S3 for thumbnail storage, DynamoDB to store metadata, and AWS Rekogntion for facial detection and recognition. 
 
+This system uses a step functions workflow, six Lambda functions, S3 for thumbnail storage, DynamoDB to store metadata, and AWS Rekognition for facial detection and recognition. Whenever the step functions workflow is executed, the function _FaceDetection_ uses AWS Rekognition to detect any faces in the image. If the photo contains more than one or no face at all, the function _PhotoDoesNotMeetRequirement_ is called, which is a placeholder function for a messaging functionality. Otherwise, the function _CheckFaceDuplicate_ queries the AWS Rekognition collection to check if this face is already registered. If it is already registered, the function _PhotoDoesNotMeetRequirement_ is called, if it is a previously unknown face, then the function _AddFaceToIndex_ uploads the face to the AWS Rekognition collection and the function _Thumbnail_ uses [ImageMagick](https://imagemagick.org/index.php) to create a thumbnail based on the detected image. Finally, the function _Persistmetadata_ saves the image metadata to a DynamoDB table.
+
+### Changelog
+We have made the following changes to the original system:
+* As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
+* Added an API gateway that triggers the execution of the step functions workflow, which allows us to use a normal HTTP load driver to generate the load.
+* Switched the DynamoDB tables from provisioned throughput to pay per request so the system incurrs no costs while not in use.
+* Upgraded from nodejs10.x to nodejs12.x
+* Fixed an issue where the setup function copyS3object used the cfnresponse package which is not available when using zifiles for the deployment (see [AWS lambda: No module named 'cfnresponse'](https://stackoverflow.com/questions/49885243/aws-lambda-no-module-named-cfnresponse))
+* Added a lambda layer containing ImageMagick for the thumbnail function, as this is no longer available in the newer runtimes (see [ImageMagick for AWS Lambda](https://github.com/serverlesspub/imagemagick-aws-lambda-2))
 
 ## Serverless Airline Booking Case Study
