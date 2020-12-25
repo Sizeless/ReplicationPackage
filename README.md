@@ -67,6 +67,7 @@ We have made the following changes to the original system:
 * Fixed an issue where the setup function copyS3object used the cfnresponse package which is not available when using zifiles for the deployment (see [AWS lambda: No module named 'cfnresponse'](https://stackoverflow.com/questions/49885243/aws-lambda-no-module-named-cfnresponse))
 * Added a lambda layer containing ImageMagick for the thumbnail function, as this is no longer available in the newer runtimes (see [ImageMagick for AWS Lambda](https://github.com/serverlesspub/imagemagick-aws-lambda-2))
 * After looking for the face in the database, the function _CheckFaceDuplicate_ always returns that the image is not yet contained, as otherwise the workload would have to consist of thousands of images that Rekognition recognises as a single face.
+* Configured step functions workflow as an express workflow to reduce execution cost
 
 ### Workload
 For this case study, we configured the following user behavior:
@@ -100,7 +101,12 @@ Measuring the ten repetitions for six different function memory sizes took only 
 ### Changelog
 We have made the following changes to the original system:
 * As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
-* 
+* Configured step functions workflow as an express workflow to reduce execution cost
+* The Stripe API test mode has a concurrency limit of 25 requests. After contacting the support, we adapted the application to distribute the requests to the StripeAPI across multiple Stripe keys.
+* Reconfigured the Stripe integration to timeout and retry long-running requests, which significantly reduced the numberof failed requests.
+* We requested an increase of the Lambda concurrent executions service quota from the default of 1.000 to 5.000.
+* Implemented caching for SSM parameters to reduce the number of requests to the System Manager Parameter Store.
+* Enabled the higher throughput option of the System Manager Parameter Store.
 
 ### Workload
 For this case study, we configured the following user behavior:
