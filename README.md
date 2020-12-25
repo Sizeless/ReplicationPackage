@@ -93,3 +93,6 @@ If the experiments are still running, this command will retrieve the data for th
 
 Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
 ## Serverless Airline Booking Case Study
+
+### System Architecture
+<img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
