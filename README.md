@@ -51,5 +51,6 @@ Measuring the ten repetitions for six different function memory sizes took 2-3 d
 
 
 ## WildRydes Case Study
+<img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing.png?raw=true" width="400"><img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/imageprocessing_stepfunctions.png?raw=true" width="400">
 
 ## Serverless Airline Booking Case Study
