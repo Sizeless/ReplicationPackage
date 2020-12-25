@@ -75,7 +75,7 @@ Resources:
       Description: "Use Amazon Rekognition to detect faces"
       Handler: index.handler
       Runtime: nodejs12.x
-      MemorySize: 256
+      MemorySize: 128
       Timeout: 60
       Policies:
         Statement:
@@ -116,7 +116,7 @@ Resources:
       Description: "mock notification sender"
       Handler: index.handler
       Runtime: nodejs12.x
-      MemorySize: 256
+      MemorySize: 128
       Timeout: 60
       CodeUri:
         ../lambda-functions/mock-notification
@@ -145,7 +145,7 @@ Resources:
       Description: "Use Amazon Rekognition to check if the face is already in the collection"
       Handler: index.handler
       Runtime: nodejs12.x
-      MemorySize: 256
+      MemorySize: 128
       Timeout: 60
       Policies:
         Statement:
@@ -188,7 +188,7 @@ Resources:
       Description: "Index the photo into Rekognition collection"
       Handler: index.handler
       Runtime: nodejs12.x
-      MemorySize: 256
+      MemorySize: 128
       Timeout: 60
       Policies:
         Statement:
@@ -278,7 +278,7 @@ Resources:
       Description: "Save metadata of the photo to DynamoDB table"
       Handler: index.handler
       Runtime: nodejs12.x
-      MemorySize: 256
+      MemorySize: 128
       Timeout: 60
       Environment:
         Variables:
