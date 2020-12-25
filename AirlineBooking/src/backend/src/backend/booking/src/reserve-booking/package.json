@@ -1,0 +1,12 @@
+{
+  "name": "long.ma-reserve-booking",
+  "version": "1.0.0",
+  "description": "Auto generated function",
+  "main": "index.js",
+  "author": "Long Bui",
+  "license": "MIT",
+  "dependencies": {
+    "uuid": "^8.1.0",
+    "aws-sdk": "^2.642.0"
+  }
+}
