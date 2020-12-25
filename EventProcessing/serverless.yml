@@ -141,6 +141,32 @@ functions:
 
 resources:
   Resources:
+    ListTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: list
+        BillingMode: PAY_PER_REQUEST
+    LatestTable:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        TableName: latest
+        BillingMode: PAY_PER_REQUEST
     IngestTable:
       Type: 'AWS::DynamoDB::Table'
       Properties:
