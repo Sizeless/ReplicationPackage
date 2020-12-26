@@ -4,7 +4,7 @@ The replication package for our paper _Sizeless: Predicting the optimal size of 
 * [Automated measurement harness for the event processing case study](#Event-Processing-Case-Study)
 * [Automated measurement harness for the facial recognition case study](#Facial-Recognition-Case-Study)
 * [Synthetic function generator used to generate our training dataset](#Synthetic-Function-Generator)
-* All measurement data and all analysis scripts required to reproduce any results/figures from the paper
+* [All measurement data and all analysis scripts required to reproduce any results/figures from the paper](#Measurement-data-and-analysis-scripts)
 
 ## Airline Booking Case Study
 The Airline Booking application is a fully serverless web application that implements the flight booking aspect of an airline on AWS ([GitHub](https://github.com/aws-samples/aws-serverless-airline-booking)). Customers can search for flights, book flights, pay using a credit card, and earn loyalty points with each booking. The airline booking applicaion was the subject of the [AWS Build On Serverless](https://pages.awscloud.com/GLOBAL-devstrategy-OE-BuildOnServerless-2019-reg-event.html) series and presented inthe AWS re:Invent session [Production-grade full-stack apps with AWS Amplify](https://www.youtube.com/watch?v=DcrtvgaVdCU).
@@ -243,3 +243,6 @@ synthetic-function-generator clean
 Make sure to replace `LAYER_ARN` and `LAMBDA_ROLE_ARN` with the corresponding ARNs from the setup step. The results are saved to the folder `./result-data`.
 
 Generating this training data set of resource consumption metrics and execution duration of 2000 functions at six different memory levels took ~2 weeks and incurred costs of ~2000$.
+
+## Measurement data and analysis scripts
+TODO describe codeocean capsule
