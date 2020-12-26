@@ -176,10 +176,10 @@ The file `dependencyLayer.zip` represents a ready-to-deploy package to add the r
 For more information about AWS Lambda Layers, see [here](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
 * The synthetic Lambda functions need to be assigned a role ARN to allow the function to access other AWS services. Either create a new role that defines what services the Lambda functions are allowed to access or use an existing role. Make sure that AWS Lambda is listed in the **Trusted Entities** section so that it can be used by Lambda. To generate synthetic functions using the CLI the **Role ARN** will be needed.
 
-## Using the synthetic function generator
+### Using the synthetic function generator
 The CLI of the synthetic function generator offers the commands `generate`, `runload`, and `clean', which are described in the following.
 
-### Command `generate`
+#### Command `generate`
 
 ```
 This command generates AWS Lambda deployable serverless function artifacts.
@@ -201,7 +201,7 @@ Flags:
   -s, --sizes ints                     Specify function sizes to be generated, need to be supported by the platform! (default [128,416,704,992,1280,1568,1856,2144,2432,2720,3008])
 ```
 
-### Command `runload`
+#### Command `runload`
 
 ```
 This command drives load on the generated functions on lambda.
@@ -219,7 +219,7 @@ Flags:
   -w, --workers int         Number of parallel workers (default 5)
 ```
 
-### Command `clean`
+#### Command `clean`
 
 ```
 This command can be used to delete all generated functions
@@ -230,3 +230,16 @@ Usage:
 Flags:
   -h, --help   help for clean
 ```
+
+### Replicating our measurements
+To replicate the generation of our training data set, run the following commands:
+
+```
+synthetic-function-generator generate --dependency-layern-arn LAYER_ARN --func-segments ../function_segments --lambda-role-arn LAMBDA_ROLE_ARN --num-funcs 2000
+synthetic-function-generator runload --duration 600 --req-per-sec 30 
+synthetic-function-generator clean
+```
+
+Make sure to replace `LAYER_ARN` and `LAMBDA_ROLE_ARN` with the corresponding ARNs from the setup step. The results are saved to the folder `./result-data`.
+
+Generating this training data set of resource consumption metrics and execution duration of 2000 functions at six different memory levels took ~2 weeks and incurred costs of ~2000$.
