@@ -8,7 +8,7 @@ Globals:
         Timeout: 5
         Tracing: Active
         Runtime: nodejs12.x
-        MemorySize: 128
+        MemorySize: 256
         Environment:
             Variables:
                 POWERTOOLS_SERVICE_NAME: booking
