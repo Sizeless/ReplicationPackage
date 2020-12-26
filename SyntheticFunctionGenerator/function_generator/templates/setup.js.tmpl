@@ -1,0 +1,61 @@
+const root = require('child_process').execSync('npm root -g').toString().trim();
+
+{{range $i, $setup := .Setups}}
+const func{{$i}} = async () => {
+{{$setup.Code}}
+}
+{{end}}
+
+const deploySAM = async () => {
+  const child_process = require("child_process");
+  await new Promise((res) => {
+    child_process.exec("sam build", {
+      cwd: __dirname,
+      stdio: "pipe"
+    }, res)
+  });
+  console.log("Successfully built SAM stack");
+  await new Promise((res) => {
+    child_process.exec("sam deploy", {
+      cwd: __dirname,
+      stdio: "pipe"
+    }, res)
+  });
+  console.log("Successfully deployed SAM stack");
+}
+
+const createDynamoDBTable = async () => {
+  const AWS = require(root + "/aws-sdk");
+  const dynamodb = new AWS.DynamoDB({region: "eu-west-1"});
+  const params = {
+    AttributeDefinitions: [
+      {
+        AttributeName: "id",
+        AttributeType: "S"
+      }
+    ],
+    KeySchema: [
+      {
+        AttributeName: "id",
+        KeyType: "HASH"
+      }
+    ],
+    BillingMode: "PAY_PER_REQUEST",
+    TableName: "{{.FunctionName}}"
+  };
+  await dynamodb.createTable(params).promise();
+  await dynamodb.waitFor('tableExists', {
+    TableName: "{{.FunctionName}}"
+  }).promise();
+  console.log("Successfully created DynamoDB results table for function {{.FunctionName}}");
+}
+
+(async () => {
+  const promises = [];
+{{range $i, $setup := .Setups}}
+  promises.push(func{{$i}}()){{end}}
+  promises.push(createDynamoDBTable());
+  promises.push(deploySAM());
+  await Promise.all(promises);
+})()
+

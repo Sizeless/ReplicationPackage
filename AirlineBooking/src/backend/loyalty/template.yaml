@@ -8,7 +8,7 @@ Globals:
     Timeout: 5
     Tracing: Active
     Runtime: nodejs12.x
-    MemorySize: 3008
+    MemorySize: 
   Api:
     TracingEnabled: true
     EndpointConfiguration: REGIONAL

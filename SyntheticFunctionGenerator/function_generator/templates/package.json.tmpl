@@ -1,0 +1,14 @@
+{
+  "name": "{{.FunctionName}}",
+  "version": "1.0.0",
+  "description": "Auto generated function",
+  "main": "index.js",
+  "author": "Long Bui",
+  "license": "MIT",
+  "dependencies": {
+    {{ range $index, $value := .Packages }}
+      {{if $index}},{{end}}
+      {{$value}}
+    {{ end }}
+  }
+}

@@ -1,0 +1,30 @@
+const root = require('child_process').execSync('npm root -g').toString().trim();
+
+{{range $i, $teardown := .Teardowns}}
+const func{{$i}} = async () => {
+{{$teardown.Code}}
+}
+{{end}}
+
+const deleteSAMStack = async () => {
+  const child_process = require("child_process");
+  child_process.execSync("aws cloudformation delete-stack --stack-name {{.FunctionName}} --region eu-west-1");
+  console.log("Successfully deleted SAM Stack");
+}
+
+const deleteDynamoDBTable = async () => {
+  const AWS = require(root + "/aws-sdk");
+  const dynamodb = new AWS.DynamoDB({region: "eu-west-1"});
+  await dynamodb.deleteTable({
+    TableName: "{{.FunctionName}}"
+  }).promise()
+  console.log("Successfully deleted DynamoDB Table");
+}
+
+(async () => {
+{{range $i, $teardown := .Teardowns}}
+  await func{{$i}}();{{end}}
+  await deleteSAMStack();
+  await deleteDynamoDBTable();
+})()
+

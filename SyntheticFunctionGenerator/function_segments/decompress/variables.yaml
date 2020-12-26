@@ -1,0 +1,14 @@
+variables: []
+files:
+  - "compressed1.gzip"
+  - "compressed2.gzip"
+  - "compressed3.gzip"
+  - "compressed4.gzip"
+  - "compressed5.gzip"
+  - "compressed6.gzip"
+  - "compressed7.gzip"
+  - "compressed8.gzip"
+  - "compressed9.gzip"
+  - "compressed10.gzip"
+packages:
+  "lorem-ipsum": "2.0.3"
