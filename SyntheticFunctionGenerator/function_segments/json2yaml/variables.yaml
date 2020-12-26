@@ -1,0 +1,8 @@
+packages:
+  "json-to-pretty-yaml": 1.2.2
+files:
+  - "1.json"
+  - "2.json"
+  - "3.json"
+  - "4.json"
+  - "5.json"

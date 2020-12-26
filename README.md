@@ -3,19 +3,19 @@ The replication package for our paper _Sizeless: Predicting the optimal size of 
 * [Automated measurement harness for the airline booking case study](#Airline-Booking-Case-Study)
 * [Automated measurement harness for the event processing case study](#Event-Processing-Case-Study)
 * [Automated measurement harness for the facial recognition case study](#Facial-Recognition-Case-Study)
-* Synthetic function generator used to generate our training dataset
-* All measurement data and all analysis scripts required to reproduce any results/figures from the paper
+* [Synthetic function generator used to generate our training dataset](#Synthetic-Function-Generator)
+* [Collected measurement data and analysis scripts required to reproduce all results/figures from the paper](#Measurement-data-and-analysis-scripts)
 
 ## Airline Booking Case Study
 The Airline Booking application is a fully serverless web application that implements the flight booking aspect of an airline on AWS ([GitHub](https://github.com/aws-samples/aws-serverless-airline-booking)). Customers can search for flights, book flights, pay using a credit card, and earn loyalty points with each booking. The airline booking applicaion was the subject of the [AWS Build On Serverless](https://pages.awscloud.com/GLOBAL-devstrategy-OE-BuildOnServerless-2019-reg-event.html) series and presented inthe AWS re:Invent session [Production-grade full-stack apps with AWS Amplify](https://www.youtube.com/watch?v=DcrtvgaVdCU).
 
 ### System Architecture
+The frontend of the serverless airline is implemented using CloudFront, Amplify/S3, Vue.js, the Quasar framework, and stripe elements. 
+This frontend sends queries to five backend APIs: _Search Flights_, _Create Charge_, _Create Booking_, _List Bookings_, and _Get Loyalty_. The five APIs are implemented as GraphQL queries using AWS AppSync, a managed GraphQL service. 
 <p align="center">
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/serverlessairline.png?raw=true" width="800">
 </p>
 
-The frontend of the serverless airline is implemented using CloudFront, Amplify/S3, Vue.js, the Quasar framework, and stripe elements. 
-This frontend sends queries to five backend APIs: _Search Flights_, _Create Charge_, _Create Booking_, _List Bookings_, and _Get Loyalty_. The five APIs are implemented as GraphQL queries using AWS AppSync, a managed GraphQL service. 
 The _Search Flights_ API retrieves all flights for a given date, arrival airport and departure airport from a DynamoDB table using the DynamoDB GraphQL resolver. 
 The _Create Charge_ API executes the _ChargeCard_ Lambda function, which wraps a call to the Stripe API. 
 The _Create Booking_ API executes a step function workflow that reserves a seat on a flight, creates an unconfirmed booking, and attempts to collect the charge on the customer's credit card. This workflow includes the functions _ReserveBooking_, _CollectPayment_, _ConfirmBooking_, and _NotifyBooking_, which edit DynamoDB tables, manage calls to Stripe, and push a message to an SNS topic. The _IngestLoyalty_ function reads from this SNS topic to update the loyalty points in a DynamoDB table. Whenen the _Get Loyalty_ API is called, the function _GetLoyalty_ retrieves the relevant loyalty data from this DynamoDB table.
@@ -156,3 +156,93 @@ docker cp facialrecognition:/results .
 If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
 
 Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
+
+## Synthetic Function Generator
+This is the Synthetic function generator from the manuscript "Sizeless: Predicting the optimal size of serverless functions". It generates AWS Lambda deployable functions by randomly combining commonly occurring function segments. The generated functions are instrumented with a resource consumption monitoring functionality. Besides the generation it also provides the possibility to directly benchmark the resulting functions. Overall, it allows the generation and benchmarking of an almost arbirarily large number of serverless functions.
+
+### Setup
+In order to install and configure the synthetic function generator, the following steps are required:
+
+* Install the required dependencies:
+   * Install `golang` (tested for versions 1.14+)
+   * Install `nodejs` (tested for versions 12.0+)
+   * Install the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html)
+   * Install the [SAM CLI](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html)
+* Build the synthetic function generator CLI: Inside the `function-generator` directory run the command `go build .`. By default this results in a file named `synthetic-function-generator`.
+* Both the AWS CLI and SAM CLI read the AWS Credentials that are needed to perform actions on AWS from either environment variables or by convention from a file in `$HOME/.aws/credentials`. Make sure that a valid **Access Key** and **Secret Key** can be found by both CLIs. See the [official documentation](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html) for more details on configuring the AWS CLI.
+* The monitoring add-on has some dependencies on certain npm packages.
+To avoid that each synthetic function package has to bring these dependencies, the use of a dependency layer proved to be the most efficient way.
+The file `dependencyLayer.zip` represents a ready-to-deploy package to add the required dependencies as a Lambda Layer. Follow the instructions on `AWS Console -> Lambda -> Additional resources -> Layers` to deploy the package. The dependency layer will be assigned a **Version ARN**, which is needed to generate functions using the CLI.
+For more information about AWS Lambda Layers, see [here](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
+* The synthetic Lambda functions need to be assigned a role ARN to allow the function to access other AWS services. Either create a new role that defines what services the Lambda functions are allowed to access or use an existing role. Make sure that AWS Lambda is listed in the **Trusted Entities** section so that it can be used by Lambda. To generate synthetic functions using the CLI the **Role ARN** will be needed.
+
+### Using the synthetic function generator
+The CLI of the synthetic function generator offers the commands `generate`, `runload`, and `clean', which are described in the following.
+
+#### Command `generate`
+
+```
+This command generates AWS Lambda deployable serverless function artifacts.
+The generated artifacts are compatible for use with the runload command.
+
+Usage:
+  synthetic-function-generator generate [flags]
+
+Flags:
+  -d, --dependency-layern-arn string   The ARN of the dependency layer, see README (required)
+      --exclude string                 Path to file containing roll strings to be excluded from generation (use --save flag for an example)
+  -f, --func-segments string           Path to function segments to be used for generation (required)
+  -h, --help                           help for generate
+  -l, --lambda-role-arn string         The ARN of the lambda role, see README (required)
+  -m, --max-roll int                   Maximum number of rolled function segments (ignored if replayFile is provided) (default 3)
+  -n, --num-funcs int                  Number of functions to generate (ignored if replayFile is provided) (default 1)
+      --replay string                  Path to file containing roll strings to be regenerated (use --save flag for an example)
+      --save                           Whether the generated function combinations should be saved
+  -s, --sizes ints                     Specify function sizes to be generated, need to be supported by the platform! (default [128,416,704,992,1280,1568,1856,2144,2432,2720,3008])
+```
+
+#### Command `runload`
+
+```
+This command drives load on the generated functions on lambda.
+It writes the results on the local filesystem specified by the flag --result-dir for later evaluation.
+
+Usage:
+  synthetic-function-generator runload [flags]
+
+Flags:
+  -d, --duration int        Target duration in seconds (default 10)
+  -f, --func-dir string     Directory containing the lambda functions (required)
+  -h, --help                help for runload
+  -p, --req-per-sec int     Target requests per second (default 50)
+  -r, --result-dir string   Directory for the measurement results (default "./result-data")
+  -w, --workers int         Number of parallel workers (default 5)
+```
+
+#### Command `clean`
+
+```
+This command can be used to delete all generated functions
+
+Usage:
+  synthetic-function-generator clean [flags]
+
+Flags:
+  -h, --help   help for clean
+```
+
+### Replicating our measurements
+To replicate the generation of our training data set, run the following commands:
+
+```
+synthetic-function-generator generate --dependency-layern-arn LAYER_ARN --func-segments ../function_segments --lambda-role-arn LAMBDA_ROLE_ARN --num-funcs 2000
+synthetic-function-generator runload --duration 600 --req-per-sec 30 
+synthetic-function-generator clean
+```
+
+Make sure to replace `LAYER_ARN` and `LAMBDA_ROLE_ARN` with the corresponding ARNs from the setup step. The results are saved to the folder `./result-data`.
+
+Generating this training data set of resource consumption metrics and execution duration of 2000 functions at six different memory levels took ~2 weeks and incurred costs of ~2000$.
+
+## Measurement data and analysis scripts
+TODO describe codeocean capsule
