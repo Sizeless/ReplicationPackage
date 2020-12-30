@@ -68,4 +68,5 @@ mv latest.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/latest.csv
 # Shutdown
 serverless remove
 git stash --include-untracked
-
+aws logs delete-log-group --log-group-name /aws/lambda/bt-evtproc-dev-format_forecast
+sleep 60
