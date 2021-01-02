@@ -235,7 +235,7 @@ Flags:
 To replicate the generation of our training data set, run the following commands:
 
 ```
-synthetic-function-generator generate --dependency-layern-arn LAYER_ARN --func-segments ../function_segments --lambda-role-arn LAMBDA_ROLE_ARN --num-funcs 2000
+synthetic-function-generator generate --dependency-layern-arn LAYER_ARN --func-segments ../function_segments --lambda-role-arn LAMBDA_ROLE_ARN --replay ../replay.txt -s 128,256,512,1024,2048,3008
 synthetic-function-generator runload --duration 600 --req-per-sec 30 
 synthetic-function-generator clean
 ```
