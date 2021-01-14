@@ -172,6 +172,7 @@ The implemented function generator makes heavy use of template engines. Given a 
 * **package.json.tmpl** The base for the `package.json`file which is usually used to describe an npmpackage. In this work it is generated and generically enriched with  all additional npm packages as specified in the `variables.yaml` file.
 * **samconfig.toml.tmpl** To  deploy  the  generated  functions  to  AWS  Lambda,  AWS SAM and its corresponding CLI is used. To enable a fully automated deployment without user input, the deplyoment configuration for SAM need to be provided beforehand.  This is done with the help of  this  template  file,  which  results  in  a `samconfig.toml` file  inside  the  deploymentpackage.
 * **template.yml.tmpl** SAM describes all resources in a `template.yml` file.  This file also contains information about the AWS Lambda function, which is why this file needs to be generated as well.
+
 To summarize, the function generator achieves its generator functionality by supplying vari-ous instantiated Go valuestructsto the template engine which applies these values to theappropriate template files.
 
 ### Function segments
