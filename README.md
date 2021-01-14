@@ -130,7 +130,8 @@ We have made the following changes to the original system:
 * Fixed an issue where the setup function copyS3object used the cfnresponse package which is not available when using zifiles for the deployment (see [AWS lambda: No module named 'cfnresponse'](https://stackoverflow.com/questions/49885243/aws-lambda-no-module-named-cfnresponse))
 * Added a lambda layer containing ImageMagick for the thumbnail function, as this is no longer available in the newer runtimes (see [ImageMagick for AWS Lambda](https://github.com/serverlesspub/imagemagick-aws-lambda-2))
 * After looking for the face in the database, the function _CheckFaceDuplicate_ always returns that the image is not yet contained, as otherwise the workload would have to consist of thousands of images that Rekognition recognises as a single face.
-* Configured step functions workflow as an express workflow to reduce execution cost
+* Configured step functions workflow as an express workflow to reduce execution cost.
+* Excluded the function _PhotoDoesNotMeetRequirement_ from evaluation as it is a no-op stub.
 
 ### Workload
 For this case study, we configured the following user behavior:
@@ -155,10 +156,14 @@ docker cp facialrecognition:/results .
 ```
 If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
 
-Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~500$) for a load of 10 requests per second.
+Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~400$) for a load of 10 requests per second.
 
 ## Synthetic Function Generator
 This is the Synthetic function generator from the manuscript "Sizeless: Predicting the optimal size of serverless functions". It generates AWS Lambda deployable functions by randomly combining commonly occurring function segments. The generated functions are instrumented with a resource consumption monitoring functionality. Besides the generation it also provides the possibility to directly benchmark the resulting functions. Overall, it allows the generation and benchmarking of an almost arbirarily large number of serverless functions.
+
+### Resource consumption monitoring
+
+
 
 ### Setup
 In order to install and configure the synthetic function generator, the following steps are required:
