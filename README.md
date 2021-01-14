@@ -161,9 +161,41 @@ Measuring the ten repetitions for six different function memory sizes took only 
 ## Synthetic Function Generator
 This is the Synthetic function generator from the manuscript "Sizeless: Predicting the optimal size of serverless functions". It generates AWS Lambda deployable functions by randomly combining commonly occurring function segments. The generated functions are instrumented with a resource consumption monitoring functionality. Besides the generation it also provides the possibility to directly benchmark the resulting functions. Overall, it allows the generation and benchmarking of an almost arbirarily large number of serverless functions.
 
-### Resource consumption monitoring
+### Function segments
+We implemented the following sixteen function segments:
+* **FloatingPointOperations** Floating-point operations are common in microbenchmarks as they represent the most basic CPU-intensive tasks. This segment calculates the square root,  sine,  cosine, and tangent of several varying input parameters.
 
+* **MatrixMultiplications** Matrix multiplications are another common task in microbenchmarks to emulate CPU load. This segment generates two random matrices of varying sizes and multiplies them.
 
+* **ImageCompress** Image manipulations are a textbook example use case for serverless functions. This segment generates a random image of varying dimensions and compresses it to varying degrees.
+
+* **ImageResize** This segment generates a random image of varying dimensions and resizes it to varying sizes.
+
+* **ImageRotate** This segment generates a random image of varying dimensions and rotates it by varying angles.
+
+* **JSON2YAML** Another common use case for serverless functions is as an adapter for an external API. This function segment transforms JSON files to the YAML format.
+
+* **Compression** Serverless functions are often used to react to file uploads in cloud storage. This function segment uses gzip compression to compress files of varying sizes.
+
+* **Decompression** This function segment implements the counterpart to the compression, it decompresses gzip compressed data.
+
+* **DynamoDBRead** Serverless functions are stateless, so state is commonly saved in external databases. This segment reads varying amounts of data from DynamoDB, a serverless database.
+
+* **DynamoDBWrite** This segment writes a varying number of entries in a DynamoDB table.
+
+* **FileRead** This segment reads files containing varying data from the file system, which might be a shared EFS file system.
+
+* **FileWrite**  This segment writes files of varying size to the file system.
+
+* **S3Read** Serverless functions also often store state in serverless storage systems, such as S3. This segment downloads files of varying sizes from an S3 bucket.
+
+* **S3Write** This segment uploads files of varying sizes to an S3 bucket.
+
+* **S3Stream** This segment streams files of varying sizes from one S3 bucket to another S3 bucket.
+
+* **Sleep** This segment keeps the system idle for varying durations. This is equivalent to waiting for an external service during an API call.
+
+To add additional function segments, create a new folder in `SyntheticFunctionGenerator/function_segments/` that contains a `function.js`file that contains the function code, a `setup.js` file that creates any additional required resoures e.g., S3 buckets, a `teardown.js` that removes any resources created in `setup.js`, and a `variables.yaml`file that contains any shared variables.
 
 ### Setup
 In order to install and configure the synthetic function generator, the following steps are required:
