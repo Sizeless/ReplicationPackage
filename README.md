@@ -161,6 +161,19 @@ Measuring the ten repetitions for six different function memory sizes took only 
 ## Synthetic Function Generator
 This is the Synthetic function generator from the manuscript "Sizeless: Predicting the optimal size of serverless functions". It generates AWS Lambda deployable functions by randomly combining commonly occurring function segments. The generated functions are instrumented with a resource consumption monitoring functionality. Besides the generation it also provides the possibility to directly benchmark the resulting functions. Overall, it allows the generation and benchmarking of an almost arbirarily large number of serverless functions.
 
+<p align="center">
+<img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/generator.png?raw=true" width="800">
+</p>
+
+The implemented function generator makes heavy use of template engines. Given a set of function segments, first the `variables.yaml`file of each segment is parsed to determine which variables should be generated for each segment.  Additionally, the list of files to copy is extracted as well as the npmpackages that need to be installed. From that information the set of variables needed for the final template execution is created. Afterwards  the  finalized  function  segments  are  generated  by  executing  the segment templates. These are then combined with the previously generated variables to perform the final template execution in order to obtain the deployable Lambda package. The deployable Lambda package is constructed from the following template files and also contains the additional required files specified in the `variables.yaml` file:
+* **setup.js.tmpl**  This template file acts as a base for the resulting `setup.js`file which contains the combined setup logic of each included function segment.
+* **teardown.js.tmpl** This template, after the generation is done, results in the `tear-down.js`file which contains the combined teardown logic of each included functionsegment.
+* **function.js.tmpl** This file is the base for the resulting `function.js`file that contains the fused business logic of each included function segment. Further, it contains the function monitoring code that is responsible for both metrics collection as well as persisting those metrics. By wrapping the generated business logic function using a function reference, the monitoring is instrumented at generation time.
+* **package.json.tmpl** The base for the `package.json`file which is usually used to describe an npmpackage. In this work it is generated and generically enriched with  all additional npm packages as specified in the `variables.yaml` file.
+* **samconfig.toml.tmpl** To  deploy  the  generated  functions  to  AWS  Lambda,  AWS SAM and its corresponding CLI is used. To enable a fully automated deployment without user input, the deplyoment configuration for SAM need to be provided beforehand.  This is done with the help of  this  template  file,  which  results  in  a `samconfig.toml` file  inside  the  deploymentpackage.
+* **template.yml.tmpl** SAM describes all resources in a `template.yml` file.  This file also contains information about the AWS Lambda function, which is why this file needs to be generated as well.
+To summarize, the function generator achieves its generator functionality by supplying vari-ous instantiated Go valuestructsto the template engine which applies these values to theappropriate template files.
+
 ### Function segments
 We implemented the following sixteen function segments:
 * **FloatingPointOperations** Floating-point operations are common in microbenchmarks as they represent the most basic CPU-intensive tasks. This segment calculates the square root,  sine,  cosine, and tangent of several varying input parameters.
