@@ -7,7 +7,7 @@ The replication package for our paper _Sizeless: Predicting the optimal size of 
 * [Collected measurement data and analysis scripts required to reproduce all results/figures from the paper](#Measurement-data-and-analysis-scripts)
 
 ## Airline Booking Case Study
-The Airline Booking application is a fully serverless web application that implements the flight booking aspect of an airline on AWS ([GitHub](https://github.com/aws-samples/aws-serverless-airline-booking)). Customers can search for flights, book flights, pay using a credit card, and earn loyalty points with each booking. The airline booking applicaion was the subject of the [AWS Build On Serverless](https://pages.awscloud.com/GLOBAL-devstrategy-OE-BuildOnServerless-2019-reg-event.html) series and presented inthe AWS re:Invent session [Production-grade full-stack apps with AWS Amplify](https://www.youtube.com/watch?v=DcrtvgaVdCU).
+The Airline Booking application is a fully serverless web application that implements the flight booking aspect of an airline on AWS ([GitHub](https://github.com/aws-samples/aws-serverless-airline-booking)). Customers can search for flights, book flights, pay using a credit card, and earn loyalty points with each booking. The airline booking application was the subject of the [AWS Build On Serverless](https://pages.awscloud.com/GLOBAL-devstrategy-OE-BuildOnServerless-2019-reg-event.html) series and presented in the AWS re:Invent session [Production-grade full-stack apps with AWS Amplify](https://www.youtube.com/watch?v=DcrtvgaVdCU).
 
 ### System Architecture
 The frontend of the serverless airline is implemented using CloudFront, Amplify/S3, Vue.js, the Quasar framework, and stripe elements. 
@@ -18,14 +18,14 @@ This frontend sends queries to five backend APIs: _Search Flights_, _Create Char
 
 The _Search Flights_ API retrieves all flights for a given date, arrival airport and departure airport from a DynamoDB table using the DynamoDB GraphQL resolver. 
 The _Create Charge_ API executes the _ChargeCard_ Lambda function, which wraps a call to the Stripe API. 
-The _Create Booking_ API executes a step function workflow that reserves a seat on a flight, creates an unconfirmed booking, and attempts to collect the charge on the customer's credit card. This workflow includes the functions _ReserveBooking_, _CollectPayment_, _ConfirmBooking_, and _NotifyBooking_, which edit DynamoDB tables, manage calls to Stripe, and push a message to an SNS topic. The _IngestLoyalty_ function reads from this SNS topic to update the loyalty points in a DynamoDB table. Whenen the _Get Loyalty_ API is called, the function _GetLoyalty_ retrieves the relevant loyalty data from this DynamoDB table.
+The _Create Booking_ API executes a step function workflow that reserves a seat on a flight, creates an unconfirmed booking, and attempts to collect the charge on the customer's credit card. This workflow includes the functions _ReserveBooking_, _CollectPayment_, _ConfirmBooking_, and _NotifyBooking_, which edit DynamoDB tables, manage calls to Stripe, and push a message to an SNS topic. The _IngestLoyalty_ function reads from this SNS topic to update the loyalty points in a DynamoDB table. When the _Get Loyalty_ API is called, the function _GetLoyalty_ retrieves the relevant loyalty data from this DynamoDB table.
 
 ### Changelog
 We have made the following changes to the original system:
 * As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
 * Configured step functions workflow as an express workflow to reduce execution cost
 * The Stripe API test mode has a concurrency limit of 25 requests. After contacting the support, we adapted the application to distribute the requests to the StripeAPI across multiple Stripe keys.
-* Reconfigured the Stripe integration to timeout and retry long-running requests, which significantly reduced the numberof failed requests.
+* Reconfigured the Stripe integration to timeout and retry long-running requests, which significantly reduced the number of failed requests.
 * We requested an increase of the Lambda concurrent executions service quota from the default of 1.000 to 5.000.
 * Implemented caching for SSM parameters to reduce the number of requests to the System Manager Parameter Store.
 * Enabled the higher throughput option of the System Manager Parameter Store.
@@ -68,7 +68,7 @@ paper, the authors investigate the challenges of migrating serverless, FaaS-base
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/EventProcessing.png?raw=true" width="800">
 </p>
 
-This system consits of an API Gateway, six Lambda functions, an Aurora database, three SNS topics, and a SQS queue. The API Gateway exposes three endpoints: `/ingest`, `/list`, `/latest`. Any request to `/ingest` triggers the Lambda function _ingest_, which publishes the event to one of the three available SNS topics depending on the event type. This triggers one of the functions _formatTemperature_, _formatForecast_, and _formatStateChanged_, which format/enrich the event and insert it into the SQS queue. Items from this queue are processed by the function _eventInserter_, which writes them to the Aurora database. The API Gateway endpoints `/list` and `/latest` trigger the Lambda functions _list_ and _latest_, which retrieve the ten latest events or all events from the Aurora database, respectively.
+This system consists of an API Gateway, six Lambda functions, an Aurora database, three SNS topics, and a SQS queue. The API Gateway exposes three endpoints: `/ingest`, `/list`, `/latest`. Any request to `/ingest` triggers the Lambda function _ingest_, which publishes the event to one of the three available SNS topics depending on the event type. This triggers one of the functions _formatTemperature_, _formatForecast_, and _formatStateChanged_, which format/enrich the event and insert it into the SQS queue. Items from this queue are processed by the function _eventInserter_, which writes them to the Aurora database. The API Gateway endpoints `/list` and `/latest` trigger the Lambda functions _list_ and _latest_, which retrieve the ten latest events or all events from the Aurora database, respectively.
 
 ### Changelog
 We have made the following changes to the original system:
@@ -112,7 +112,7 @@ Measuring the ten repetitions for six different function memory sizes took 2-3 d
 
 
 ## Facial Recognition Case Study
-This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop ([Github](https://github.com/aws-samples/aws-serverless-workshops/tree/master/ImageProcessing)), which was also used in the evaluation of the paper _Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement_ by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recogniion, matching, and indexing.
+This case study uses the facial recognition/image processing segment of the AWS Wild Rydes Workshop ([Github](https://github.com/aws-samples/aws-serverless-workshops/tree/master/ImageProcessing)), which was also used in the evaluation of the paper _Costless: Optimizing Cost of Serverless Computing through Function Fusion and Placement_ by Elgamal et al.. In this application, users of a fictional transportation app, Wild Rydes, upload their profile picture, which triggers the execution of a workflow that performance facial recognition, matching, and indexing.
 
 ### System Architecture
 <p align="center">
@@ -125,11 +125,11 @@ This system uses a step functions workflow, six Lambda functions, S3 for thumbna
 We have made the following changes to the original system:
 * As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
 * Added an API gateway that triggers the execution of the step functions workflow, which allows us to use a normal HTTP load driver to generate the load.
-* Switched the DynamoDB tables from provisioned throughput to pay per request so the system incurrs no costs while not in use.
+* Switched the DynamoDB tables from provisioned throughput to pay per request so the system incurs no costs while not in use.
 * Upgraded from nodejs10.x to nodejs12.x
-* Fixed an issue where the setup function copyS3object used the cfnresponse package which is not available when using zifiles for the deployment (see [AWS lambda: No module named 'cfnresponse'](https://stackoverflow.com/questions/49885243/aws-lambda-no-module-named-cfnresponse))
+* Fixed an issue where the setup function copyS3object used the cfnresponse package which is not available when using zipfiles for the deployment (see [AWS lambda: No module named 'cfnresponse'](https://stackoverflow.com/questions/49885243/aws-lambda-no-module-named-cfnresponse))
 * Added a lambda layer containing ImageMagick for the thumbnail function, as this is no longer available in the newer runtimes (see [ImageMagick for AWS Lambda](https://github.com/serverlesspub/imagemagick-aws-lambda-2))
-* After looking for the face in the database, the function _CheckFaceDuplicate_ always returns that the image is not yet contained, as otherwise the workload would have to consist of thousands of images that Rekognition recognises as a single face.
+* After looking for the face in the database, the function _CheckFaceDuplicate_ always returns that the image is not yet contained, as otherwise the workload would have to consist of thousands of images that Rekognition recognizes as a single face.
 * Configured step functions workflow as an express workflow to reduce execution cost.
 * Excluded the function _PhotoDoesNotMeetRequirement_ from evaluation as it is a no-op stub.
 
