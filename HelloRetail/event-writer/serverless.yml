@@ -1,0 +1,121 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.helloRetail.name}-event-writer-api
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../private.yml)}
+  helloRetail: ${file(../helloRetail.yml)}
+  retailStream: ${file(../retail-stream/serverless.yml)}
+  retailStreamVersion: 1
+  eventWriterApiVersion: 1 # The version of this service to depend upon
+  eventWriterApi: ${self:} # externally, use `${file(~/event-writer/serverless.yml)}`, replacing the `~` therein with the appropriate relative reference [e.g. '..' or '../..']
+  # Exports
+  exportEventWriterRestApi: ${self:custom.eventWriterApi.service}:${self:custom.stage}:EventWriterRestApi:${self:custom.eventWriterApiVersion}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+  memorySize: ${env:MEMORY_SIZE}
+  environment:
+    STAGE: ${self:custom.stage}
+  iam:
+    role:
+      statements: # permissions for all of your functions can be set here
+        - Effect: Allow
+          Action: # Gives permission to DynamoDB tables in a specific region
+            - dynamodb:PutItem
+          Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${MetricsTableEventWriter}"
+
+functions:
+  eventWriter:
+    role:
+      Fn::GetAtt: [ EventWriter, Arn ]
+    handler: eventWriterApi.eventWriter
+    environment:
+      STREAM_NAME:
+        Fn::ImportValue: ${self:custom.retailStream.custom.exportRetailStreamName}
+    events:
+      - http:
+          path: event-writer
+          method: post
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+            allowCredentials: false
+
+resources:
+  Resources:
+    MetricsTableEventWriter:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: metrics.event-writer
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # Log Group
+    EventWriterLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:custom.stage}-eventWriter
+        RetentionInDays: 7
+
+    EventWriter: # role for the Event Writer Lambda to write to logs and the Kinesis Stream (retailStream)
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}EventWriter${self:custom.eventWriterApiVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: CreateAndWriteToLogStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogStream'
+                    - 'logs:PutLogEvents'
+                  Resource:
+                    - Fn::Join:
+                      - ':'
+                      - - Fn::GetAtt: [ EventWriterLogGroup, Arn ]
+                        - '*'
+          - PolicyName: WriteToKinesis
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'kinesis:PutRecord'
+                  Resource:
+                    Fn::ImportValue: ${self:custom.retailStream.custom.exportRetailStreamArn}
+
+  Outputs:
+    EventWriterRestApi:
+      Description: API used to submit producer events to the Kinesis Stream
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:custom.eventWriterApi.custom.exportEventWriterRestApi}

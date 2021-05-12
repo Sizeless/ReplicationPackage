@@ -1,0 +1,7 @@
+{
+  "name": "hello-retail-website",
+  "version": "1.0.0",
+  "description": "Web application that provides the front end to Hello Retail.",
+  "repository": "https://github.com/Nordstrom/hello-retail",
+  "license": "MIT"
+}

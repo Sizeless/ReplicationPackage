@@ -1,0 +1,9 @@
+{
+   "name":"3008MB",
+   "memSize":"3008",
+   "duration":300,
+   "load":10,
+   "repetitions":10,
+   "region":"us-west-2",
+   "loadriverthreats":12
+}

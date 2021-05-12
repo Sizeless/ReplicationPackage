@@ -1,0 +1,147 @@
+{
+  "name": "hello-retail",
+  "version": "0.1.0",
+  "description": "An introduction to the event stream processing model for the purpose of implementing a retail system backbone",
+  "main": "index.js",
+  "scripts": {
+    "root:install": "./build/0.env.sh && ./build/1.install.sh \"Installing Top-Level Project Dependencies\"           .",
+    "root:install:all": "npm run root:install && npm run writer:install && npm run catalog:install:all && npm run photos:install:all && npm run web:install",
+    "root:deploy:all": "npm run stream:deploy && npm run writer:deploy && npm run catalog:deploy:all && npm run photos:deploy:all && npm run web:deploy:all",
+    "root:remove:all": "npm run web:remove:all && npm run photos:remove:all && npm run catalog:remove:all && npm run writer:remove && npm run stream:remove",
+    "writer:install": "./build/0.env.sh && ./build/1.install.sh \"Installing Event Writer Dependencies\"                ./event-writer",
+    "writer:deploy": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Event Writer\"                           ./event-writer",
+    "writer:remove": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Event Writer\"                            ./event-writer",
+    "stream:deploy": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Retail Stream\"                          ./retail-stream",
+    "stream:remove": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Retail Stream\"                           ./retail-stream",
+    "catalog:install:1": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Catalog Dependencies\"             ./product-catalog/builder",
+    "catalog:install:2": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Catalog API\"                      ./product-catalog/api",
+    "catalog:install:all": "npm run catalog:install:1 && npm run catalog:install:2",
+    "catalog:deploy:1": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Catalog Processor\"              ./product-catalog/builder",
+    "catalog:deploy:2": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Catalog API\"                    ./product-catalog/api",
+    "catalog:deploy:all": "npm run catalog:deploy:1 && npm run catalog:deploy:2",
+    "catalog:remove:1": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Catalog Processor\"               ./product-catalog/builder",
+    "catalog:remove:2": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Catalog API\"                     ./product-catalog/api",
+    "catalog:remove:all": "npm run catalog:remove:2 && npm run catalog:remove:1",
+    "photos:install:1": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Photos - Processor Dependencies\"  ./product-photos/0.processor",
+    "photos:install:2": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Photos - Assign Dependencies\"     ./product-photos/1.assign",
+    "photos:install:3": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Photos - Receive Dependencies\"    ./product-photos/2.receive",
+    "photos:install:4": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Photos - Fail Dependencies\"       ./product-photos/3.fail",
+    "photos:install:5": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Photos - Success Dependencies\"    ./product-photos/3.success",
+    "photos:install:6": "./build/0.env.sh && ./build/1.install.sh \"Installing Product Photos - Report Dependencies\"     ./product-photos/4.report",
+    "photos:install:all": "npm run photos:install:1 && npm run photos:install:2 && npm run photos:install:3 && npm run photos:install:4 && npm run photos:install:5 && npm run photos:install:6",
+    "photos:deploy:1": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - Data\"                  ./product-photos/data",
+    "photos:deploy:2": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - 1.Assign\"              ./product-photos/1.assign",
+    "photos:deploy:3": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - 2.Receive\"             ./product-photos/2.receive",
+    "photos:deploy:4": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - 3.Fail\"                ./product-photos/3.fail",
+    "photos:deploy:5": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - 3.Success\"             ./product-photos/3.success",
+    "photos:deploy:6": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - 4.Report\"              ./product-photos/4.report",
+    "photos:deploy:7": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - Process\"               ./product-photos/process",
+    "photos:deploy:8": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Product Photos - 0.Processor\"           ./product-photos/0.processor",
+    "photos:deploy:all": "npm run photos:deploy:1 && npm run photos:deploy:2 && npm run photos:deploy:3 && npm run photos:deploy:4 && npm run photos:deploy:5 && npm run photos:deploy:6 && npm run photos:deploy:7 && npm run photos:deploy:8",
+    "photos:remove:1": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - Data\"                   ./product-photos/data",
+    "photos:remove:2": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - 1.Assign\"               ./product-photos/1.assign",
+    "photos:remove:3": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - 2.Receive\"              ./product-photos/2.receive",
+    "photos:remove:4": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - 3.Fail\"                 ./product-photos/3.fail",
+    "photos:remove:5": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - 3.Success\"              ./product-photos/3.success",
+    "photos:remove:6": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - 4.Report\"               ./product-photos/4.report",
+    "photos:remove:7": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - Process\"                ./product-photos/process",
+    "photos:remove:8": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Product Photos - 0.Processor\"            ./product-photos/0.processor",
+    "photos:remove:all": "npm run photos:remove:8 && npm run photos:remove:7 && npm run photos:remove:6 && npm run photos:remove:5 && npm run photos:remove:4 && npm run photos:remove:3 && npm run photos:remove:2 && npm run photos:remove:1",
+    "web:install": "./build/0.env.sh && ./build/1.install.sh \"Installing Web App Dependencies\"                     ./web",
+    "web:build": "./build/0.env.sh && ./build/2.sls.sh buildWebApp \"Building Web App\"                            ./web",
+    "web:deploy": "./build/0.env.sh && ./build/2.sls.sh deploy \"Deploying Web App\"                                ./web",
+    "web:deploy:all": "npm run web:build && npm run web:deploy",
+    "web:remove:all": "./build/0.env.sh && ./build/2.sls.sh remove \"Removing Web App\"                                 ./web",
+    "web:dev:hot": "./node_modules/.bin/webpack-dev-server --config ./web/webpack.config.js --http --hot --progress --colors --watch --display-error-details --display-cached --content-base ./web/app/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nordstrom/hello-retail.git"
+  },
+  "keywords": [
+    "retail",
+    "event",
+    "stream",
+    "log",
+    "processing"
+  ],
+  "author": "Nordstrom",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Nordstrom/hello-retail/issues"
+  },
+  "homepage": "https://github.com/Nordstrom/hello-retail#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "ajv": "^4.11.2",
+    "aws-sdk": "^2.7.16",
+    "babel-core": "^6.6.4",
+    "babel-eslint": "^7.1.1",
+    "babel-loader": "^6.2.10",
+    "babel-preset-airbnb": "^1.1.1",
+    "babel-preset-es2015": "^6.6.0",
+    "babel-preset-react": "^6.5.0",
+    "babel-preset-stage-0": "^6.22.0",
+    "babel-register": "^6.22.0",
+    "chai": "^3.5.0",
+    "enzyme": "^2.7.0",
+    "eslint": "^3.14.0",
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2",
+    "eslint-plugin-react": "^6.9.0",
+    "https-proxy-agent": "^1.0.0",
+    "inquirer": "^3.1.0",
+    "js-yaml": "^3.7.0",
+    "jsdom": "^9.9.1",
+    "json-loader": "^0.5.4",
+    "kinesis-handler": "git+https://github.com/Nordstrom/kinesis-handler.git",
+    "loadjs": "^3.3.1",
+    "mocha": "^3.5.3",
+    "react": "^15",
+    "react-addons-test-utils": "^15.4.2",
+    "react-dom": "^15",
+    "react-router": "^3.0.2",
+    "serverless": "2.25.2",
+    "webpack": "^1.14.0",
+    "webpack-dev-server": "^1.16.2"
+  },
+  "contributors": [
+    {
+      "name": "Gregory W. Smith II",
+      "url": "https://github.com/gwsii"
+    },
+    {
+      "name": "Lauren Wang",
+      "url": "https://github.com/laurwang"
+    },
+    {
+      "name": "Rob Gruhl",
+      "url": "https://github.com/RobGruhl"
+    },
+    {
+      "name": "Erik Erikson",
+      "url": "https://github.com/erikerikson"
+    },
+    {
+      "name": "Saina Parsis",
+      "url": "https://github.com/sainap"
+    },
+    {
+      "name": "Rachel Groberman",
+      "url": "https://github.com/rachelgr"
+    },
+    {
+      "name": "Ashley Wang",
+      "url": "https://github.com/ashleyqw"
+    },
+    {
+      "name": "Nanxi Liu",
+      "url": "https://github.com/nanxiliu"
+    },
+    {
+      "name": "Gabrielle Finear",
+      "url": "https://github.com/gmfinear"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "retail-stream-egress",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "allOf": { "$ref": "retail-stream-schema-ingress.json#" },
+  "properties": {
+    "eventId": { "type": "string" },
+    "timeIngest":  { "type": "string", "format": "date-time" },
+    "timeProcess": { "type": "string", "format": "date-time" }
+  },
+  "required": [
+    "eventId",
+    "timeIngest",
+    "timeProcess"
+  ],
+  "additionalProperties": false
+}

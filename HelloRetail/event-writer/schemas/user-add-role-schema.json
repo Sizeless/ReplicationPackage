@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "user-info/add-role",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "properties": {
+    "schema": { "type": "string" },
+    "id":     { "type": "string" },
+    "role":   { "type": "string" }
+  },
+  "required": [
+    "schema",
+    "id",
+    "role"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,119 @@
+.app {
+  font-size: 120%;
+  text-align: center;
+  width: 100%;
+}
+
+label {
+  font-weight: bold;
+}
+
+.registerRadio {
+  margin: auto
+}
+
+.cartTitle {
+  margin-bottom: 30px;
+}
+
+.productCard {
+  text-align:center;
+  max-width: 18em;
+}
+
+.productName {
+  font-size: x-large;
+}
+
+.productBrand {
+  font-size: large;
+}
+
+.productDesc {
+}
+
+.productImage {
+  width: 300px;
+}
+
+.categoryList {
+  background-color: cornflowerblue;
+}
+
+.categoryLink {
+  text-align: left;
+}
+
+.categoryCount {
+  text-align: right;
+  display: none;
+}
+
+.stageLabel {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  padding-right: 1em;
+}
+
+.errorMessage {
+  color: red;
+}
+
+.homeLink {
+  position: absolute;
+  left: 1em;
+  top: 1em;
+  font-size: 120%;
+  text-decoration: none !important;
+}
+
+.cartLink {
+  position: absolute;
+  left: 3em;
+  top: 1em;
+  font-size: 120%;
+  text-decoration: none !important;
+}
+
+
+button:not(.awsLoginButton) {
+  color: black;
+  background-color: cornflowerblue;
+  boder: 3px solid black;
+  border-radius: 15px;
+  padding: 10px 30px;
+  margin: 1em;
+}
+
+.awsLoginButton {
+  border: none;
+  background-color: transparent;
+}
+
+input, textarea {
+  border: 1px solid silver;
+}
+
+textarea {
+  width: 100%;
+  margin-right: 136px;
+}
+
+@media only screen and (max-device-width: 480px) {
+  .homeLink {
+    font-size: 300%;
+  }
+
+  *, textarea {
+    font-size: 120%;
+  }
+
+  input, textarea {
+    border: 2px solid black;
+  }
+
+  .awsLoginButton img {
+    width: 320px;
+  }
+}

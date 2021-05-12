@@ -1,0 +1,263 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.helloRetail.name}-website
+
+plugins:
+  - web-app-build-plugin
+
+custom:
+  productPhotos: ${file(../product-photos/productPhotos.yml)}
+
+  # AWS ARN for the S3 bucket used to host the site.
+  bucketArn:
+    Fn::Join: # e.g. arn:aws:s3:::stage.hello-retail.biz/*
+      - ''
+      - - 'arn:aws:s3:::'
+        - Ref: HelloRetailWebBucket
+        - '/*'
+
+  # Domain name for CloudFront distribution.
+  cloudFrontDomainName:
+    Fn::GetAtt:
+      - HelloRetailWebDistribution
+      - DomainName
+
+  # Hosted Zone ID for all of CloudFormation.
+  cloudFrontHostedZoneId: Z2FDTNDATAQYW2
+
+  # Public domain for the site e.g. hello-retail.biz
+  domainName: ${self:custom.private.domainName}
+
+  # Fully Qualified Domain Name for the hosted website.
+  dnsHostName:
+    Fn::If: # e.g. hello-retail.biz or stage.hello-retail.biz
+      - ProductionStage
+      - ${self:custom.domainName}
+      - ${self:custom.stage}.${self:custom.domainName}
+
+  # FQDN for direct access to S3 bucket website.
+  originDomainName:
+    Fn::Join: # e.g. hello-retail.biz.s3.amazonaws.com
+      - ''
+      - - ${self:custom.dnsHostName}
+        - '.s3.amazonaws.com'
+
+  # Identifier used for the S3 origin in CloudFront.
+  originId:
+    Fn::Join: # e.g. S3-hello-retail.biz or S3-stage.hello-retail.biz
+      - ''
+      - - 'S3-'
+        - ${self:custom.dnsHostName}
+
+  # Import secrets.
+  private: ${file(../private.yml)}
+
+  helloRetail: ${file(../helloRetail.yml)}
+  retailStreamVersion: 1
+  retailStream: ${file(../retail-stream/serverless.yml)}
+
+  eventWriterApiVersion: 1
+  eventWriterApi: ${file(../event-writer/serverless.yml)}
+  productCatalogBuilderVersion: 1
+  productCatalogBuilder: ${file(../product-catalog/builder/serverless.yml)}
+  productCatalogApiVersion: 1
+  productCatalogApi: ${file(../product-catalog/api/serverless.yml)}
+
+  s3Bucket:
+    Fn::Join: # e.g. s3://stage.hello-retail.biz/
+      - ''
+      - - 's3://'
+        - Ref: HelloRetailWebBucket
+        - '/'
+
+  # Stage name for deployment. Use 'prod' to deploy to production.
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+
+  webAppBuild:
+    configPath: ./config.js
+    configValues:
+      ImageBucket: ${self:custom.productPhotos.bucket}
+      WebAppName: Hello Retail
+      Stage: ${self:custom.stage}
+      AWSRegion: ${self:custom.private.region}
+      SessionName: ${self:custom.helloRetail.name}-website-${self:custom.stage}
+      WebAppRole: arn:aws:iam::${env:ACCOUNT_ID}:role/${self:custom.stage}HelloRetailWebIdentity
+      ProductCatalogTableName:
+        Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableName}
+      ProductCategoryTableName:
+        Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCategoryTableName}
+      EventWriterApi:
+        Fn::ImportValue: ${self:custom.eventWriterApi.custom.exportEventWriterRestApi}
+      ProductCatalogApi:
+        Fn::ImportValue: ${self:custom.productCatalogApi.custom.exportProductCatalogRestApi}
+    webpackPath: ./webpack.config.js
+
+  webApp: ${self:} # externally, use `${file(~/web/serverless.yml)}`, replacing the `~` therein with the appropriate relative reference [e.g. '..' or '../..']
+  exportWebApplicationIdentityArn: ${self:custom.webApp.service}:${self:custom.stage}:WebApplicationIdentityArn
+  exportWebApplicationBucketName: ${self:custom.webApp.service}:${self:custom.stage}:WebApplicationBucketName
+
+provider:
+  name: aws
+  region: ${self:custom.private.region}
+
+resources:
+  Conditions:
+     ProductionStage:
+       Fn::Equals:
+         - ${self:custom.stage}
+         - prod
+
+  Resources:
+
+    # TODO: Web App Role to include policy allowing it to assume all necessary roles
+
+    # ===================== IAM ====================
+
+    WebApplicationIdentity:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}HelloRetailWebIdentity
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: ReadFromProductCatalog
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:Scan'
+                   Resource:
+                    Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCategoryTableArn}
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:GetItem'
+                     - 'dynamodb:BatchGetItem'
+                     - 'dynamodb:Scan'
+                   Resource:
+                    Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableArn}
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:Query'
+                     - 'dynamodb:Scan'
+                   Resource:
+                    Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableCategoryIndexArn}
+
+    # ===================== S3 =====================
+
+    HelloRetailWebBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.dnsHostName}
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: error.html
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+                - HEAD
+              AllowedOrigins:
+                - "*"
+
+    HelloRetailWebBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket:
+          Ref: HelloRetailWebBucket
+        PolicyDocument:
+          Statement:
+            - Action:
+                - s3:GetObject
+              Effect: Allow
+              Resource: ${self:custom.bucketArn}
+              Principal: '*'
+            - Action:
+                - s3:PutObject
+              Effect: Allow
+              Resource: ${self:custom.bucketArn}
+              Principal:
+                AWS:
+                  - 'arn:aws:iam::${env:ACCOUNT_ID}:role/${self:custom.stage}HelloRetailWebIdentity'
+      DependsOn:
+        - HelloRetailWebBucket
+
+    # ================ CloudFront ==================
+
+    HelloRetailWebDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Origins:
+            - Id: ${self:custom.originId}
+              DomainName: ${self:custom.originDomainName}
+              S3OriginConfig:
+                OriginAccessIdentity: ''
+          Enabled: true
+          CustomErrorResponses:
+            - ErrorCode: 403
+              ResponseCode: 200
+              ResponsePagePath: /error.html
+          DefaultRootObject: index.html
+          #Aliases:
+          #- ${self:custom.dnsHostName}
+          DefaultCacheBehavior:
+            AllowedMethods:
+            - GET
+            - HEAD
+            DefaultTTL: 0
+            MinTTL: 0
+            MaxTTL: 0
+            TargetOriginId: ${self:custom.originId}
+            ForwardedValues:
+              QueryString: false
+              Cookies:
+                Forward: none
+            ViewerProtocolPolicy: allow-all
+      DependsOn:
+        - HelloRetailWebBucket
+
+    # ================= Route 53 ===================
+
+    #HelloRetailWebRecordSetGroup:
+    #  Type: AWS::Route53::RecordSetGroup
+    #  Properties:
+    #    HostedZoneName: ${self:custom.domainName}.
+    #    RecordSets:
+    #    - Name: ${self:custom.dnsHostName}
+    #      Type: A
+    #      AliasTarget:
+    #        DNSName: ${self:custom.cloudFrontDomainName}
+    #        HostedZoneId: ${self:custom.cloudFrontHostedZoneId}
+    #    - Name: ${self:custom.dnsHostName}
+    #      Type: AAAA
+    #      AliasTarget:
+    #        DNSName: ${self:custom.cloudFrontDomainName}
+    #        HostedZoneId: ${self:custom.cloudFrontHostedZoneId}
+    #  DependsOn:
+    #    - HelloRetailWebDistribution
+
+  # ================= Outputs ===================
+
+  Outputs:
+    WebApplicationIdentityArn:
+      Description: The Role ARN for the Web Application identity
+      Value:
+        Fn::GetAtt: [ WebApplicationIdentity, Arn ]
+      Export:
+        Name: ${self:custom.exportWebApplicationIdentityArn}
+    WebApplicationBucketName:
+      Description: The S3 Bucket ARN used to host Web Application
+      Value:
+        Ref: HelloRetailWebBucket
+      Export:
+        Name: ${self:custom.exportWebApplicationBucketName}

@@ -1,0 +1,119 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.helloRetail.name}-stream
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../private.yml)}
+  helloRetail: ${file(../helloRetail.yml)}
+  # Retail Stream Versions & Exports
+  # WARNING: each project that uses these will have to define the following two attributes in its serverless.yml: (custom.retailStreamVersion, custom.retailStream)
+  retailStreamVersion: 1 # The version of this service to depend upon
+  retailStream: ${self:} # externally, use `${file(~/retail-stream/serverless.yml)}`, replacing the `~` therein with the appropriate relative reference [e.g. '..' or '../..']
+  # Exports
+  exportRetailStreamName: ${self:custom.retailStream.service}:${self:custom.stage}:RetailStreamName:${self:custom.retailStreamVersion}
+  exportRetailStreamArn: ${self:custom.retailStream.service}:${self:custom.stage}:RetailStreamArn:${self:custom.retailStreamVersion}
+  exportRetailStreamWriterArn: ${self:custom.retailStream.service}:${self:custom.stage}:RetailStreamWriterArn:${self:custom.retailStreamVersion}
+  exportRetailStreamReaderArn: ${self:custom.retailStream.service}:${self:custom.stage}:RetailStreamReaderArn:${self:custom.retailStreamVersion}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+  environment:
+    STAGE: ${self:custom.stage}
+
+resources:
+  Resources:
+    # Retail Stream
+    RetailStream:
+      Type: 'AWS::Kinesis::Stream'
+      Properties:
+        Name: ${self:custom.stage}RetailStream
+        ShardCount: 10
+
+    # Role for direct producers
+    RetailStreamWriter:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}RetailStreamWriter${self:custom.retailStreamVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: # role ARNs that are allowed to write to the Retail stream
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: WriteToStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -  Effect: Allow
+                   Action:
+                     - 'kinesis:DescribeStream'
+                     - 'kinesis:PutRecord'
+                     - 'kinesis:PutRecords'
+                   Resource:
+                     Fn::GetAtt: [ RetailStream, Arn ]
+    # Role for direct consumers
+    RetailStreamReader:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}RetailStreamReader${self:custom.retailStreamVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: # role ARNs that are allowed to read from the Retail stream
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: ReadFromStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -  Effect: Allow
+                   Action:
+                     - 'kinesis:DescribeStream'
+                     - 'kinesis:GetRecords'
+                     - 'kinesis:GetShardIterator'
+                     - 'kinesis:ListStreams'
+                   Resource:
+                     Fn::GetAtt: [ RetailStream, Arn ]
+
+  Outputs:
+    RetailStreamName:
+      Description: The Name of the Retail Stream
+      Value:
+        Ref: RetailStream
+      Export:
+        Name: ${self:custom.retailStream.custom.exportRetailStreamName}
+    RetailStreamArn:
+      Description: The ARN for the Retail Stream
+      Value:
+        Fn::GetAtt: [ RetailStream, Arn ]
+      Export:
+        Name: ${self:custom.retailStream.custom.exportRetailStreamArn}
+    RetailStreamWriterArn:
+      Description: The ARN for the defined Role that can write events to the RetailStream
+      Value:
+        Fn::GetAtt: [ RetailStreamWriter, Arn ]
+      Export:
+        Name: ${self:custom.retailStream.custom.exportRetailStreamWriterArn}
+    RetailStreamReaderArn:
+      Description: The ARN for the defined Role that can read events from the RetailStream
+      Value:
+        Fn::GetAtt: [ RetailStreamReader, Arn ]
+      Export:
+        Name: ${self:custom.retailStream.custom.exportRetailStreamReaderArn}

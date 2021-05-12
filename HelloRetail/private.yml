@@ -1,0 +1,6 @@
+region: ${env:REGION}
+company: ${env:COMPANY}
+team: ${env:TEAM}
+stage: ${env:STAGE}
+
+domainName: hello-retail.biz
