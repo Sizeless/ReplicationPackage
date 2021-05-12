@@ -2,7 +2,8 @@
 The replication package for our paper _Sizeless: Predicting the optimal size of serverless functions_ consists of five parts:
 * [Automated measurement harness for the airline booking case study](#Airline-Booking-Case-Study)
 * [Automated measurement harness for the event processing case study](#Event-Processing-Case-Study)
-* [Automated measurement harness for the facial recognition case study](#Facial-Recognition-Case-Study)
+* [Automated measurement harness for the facial recognition case study](#Facial-Recognition-Case-Study))
+* [Automated measurement harness for the hello retail case study](#Hello-Retail-Case-Study)
 * [Synthetic function generator used to generate our training dataset](#Synthetic-Function-Generator)
 * [Collected measurement data and analysis scripts required to reproduce all results/figures from the paper](#Measurement-data-and-analysis-scripts)
 
@@ -157,6 +158,33 @@ docker cp facialrecognition:/results .
 If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
 
 Measuring the ten repetitions for six different function memory sizes took only ~8 hours but was comparatively expensive (~400$) for a load of 10 requests per second.
+
+## Hello Retail Case Study
+Hello Retail is a proof-of-concept serverless architecture for a retail store by the online retailer Nordstrom. It was the winner of the serverless architecture competition at  Serverlessconf Austin. The team at Nordstrom built Hello Retail with one scenario in mind: a merchant adding a product to their store. When a product is added to the store, two things need to occur. A photographer needs to take a photo of the product. After this, customers should see the new product with the new photo in the product catalog.
+
+### System Architecture
+<p align="center">
+<img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/helloretail.gif?raw=true" width="800">
+</p>
+### Changelog
+### Workload
+### Replicating our measurements
+To replicate our measurements, run the following commands in the folder `FacialRecognition`:
+```
+docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t helloretail
+docker run -d --name helloretail helloretail
+docker exec -it helloretail bash /hello-retail/runner.sh
+```
+
+Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
+
+To retrieve the collected monitoring data run the following command:
+```
+docker cp helloretail:/results .
+```
+If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
+
+Measuring the ten repetitions for six different function memory sizes took only ~12 hours but was quite cheap (~30$) for a load of 10 requests per second.
 
 ## Synthetic Function Generator
 This is the Synthetic function generator from the manuscript "Sizeless: Predicting the optimal size of serverless functions". It generates AWS Lambda deployable functions by randomly combining commonly occurring function segments. The generated functions are instrumented with a resource consumption monitoring functionality. Besides the generation it also provides the possibility to directly benchmark the resulting functions. Overall, it allows the generation and benchmarking of an almost arbirarily large number of serverless functions.
