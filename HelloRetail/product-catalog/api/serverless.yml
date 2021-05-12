@@ -1,0 +1,179 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.helloRetail.name}-product-catalog-api
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../../private.yml)}
+  helloRetail: ${file(../../helloRetail.yml)}
+  retailStreamVersion: 1
+  retailStream: ${file(../../retail-stream/serverless.yml)}
+  productCatalogBuilderVersion: 1
+  productCatalogBuilder: ${file(../builder/serverless.yml)}
+  productCatalogApiVersion: 1
+  productCatalogApi: ${self:}
+  # Exports
+  exportProductCatalogRestApi: ${self:custom.productCatalogApi.service}:${self:custom.stage}:ProductCatalogRestApi:${self:custom.productCatalogApiVersion}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: ${env:MEMORY_SIZE}
+  region: ${self:custom.private.region}
+  iam:
+    role:
+      statements: # permissions for all of your functions can be set here
+        - Effect: Allow
+          Action: # Gives permission to DynamoDB tables in a specific region
+            - dynamodb:PutItem
+          Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${MetricsTableProductCatalogApi}"
+
+functions:
+  categories:
+    role:
+      Fn::GetAtt: [ ProductCatalogApiCategoriesReader, Arn ]
+    handler: catalogApi.categories
+    environment:
+      TABLE_PRODUCT_CATEGORY_NAME:
+        Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCategoryTableName}
+    events:
+      - http:
+          path: categories
+          method: get
+          cors: true
+  products:
+    role:
+      Fn::GetAtt: [ ProductCatalogApiProductsReader, Arn ]
+    handler: catalogApi.products
+    environment:
+      TABLE_PRODUCT_CATALOG_NAME:
+        Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableName}
+    events:
+      - http:
+          path: products
+          method: get
+          cors: true
+
+resources:
+  Resources:
+    MetricsTableProductCatalogApi:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: metrics.product-catalog-api
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # Log Group
+    CategoriesLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:custom.stage}-categories
+        RetentionInDays: 7
+    ProductsLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:custom.stage}-products
+        RetentionInDays: 7
+    # Product Catalog Roles
+    ProductCatalogApiCategoriesReader: # role for Categories Lambda
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}ProductCatalogApiCategoriesReader${self:custom.productCatalogApiVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: CreateAndWriteToLogStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogStream'
+                  Resource:
+                    Fn::GetAtt: [ CategoriesLogGroup, Arn ]
+                - Effect: Allow
+                  Action:
+                    - 'logs:PutLogEvents'
+                  Resource:
+                    Fn::Join:
+                      - ':'
+                      - - Fn::GetAtt: [ CategoriesLogGroup, Arn ]
+                        - '*'
+          - PolicyName: ReadFromCategories
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:Scan'
+                   Resource:
+                    Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCategoryTableArn}
+    ProductCatalogApiProductsReader: # role for Products Lambda
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}ProductCatalogApiProductsReader${self:custom.productCatalogApiVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: CreateAndWriteToLogStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogStream'
+                  Resource:
+                    Fn::GetAtt: [ ProductsLogGroup, Arn ]
+                - Effect: Allow
+                  Action:
+                    - 'logs:PutLogEvents'
+                  Resource:
+                    Fn::Join:
+                      - ':'
+                      - - Fn::GetAtt: [ ProductsLogGroup, Arn ]
+                        - '*'
+          - PolicyName: ReadFromProducts
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:GetItem'
+                   Resource:
+                    Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableArn}
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:Query'
+                   Resource:
+                    Fn::ImportValue: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableCategoryIndexArn}
+
+  Outputs:
+    ProductCatalogRestApi:
+      Description: API used to access the product and category catalog in DynamoDB
+      Value:
+        Ref: ApiGatewayRestApi
+      Export:
+        Name: ${self:custom.productCatalogApi.custom.exportProductCatalogRestApi}

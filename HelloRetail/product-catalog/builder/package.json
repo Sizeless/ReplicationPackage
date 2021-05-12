@@ -1,0 +1,19 @@
+{
+  "name": "hello-retail-product-catalog-builder",
+  "version": "0.0.1",
+  "description": "A stream processor that accumulates a catalog of our latest best knowledge regarding each product",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: tests executed by root hello-retail package.json\" && exit 1"
+  },
+  "author": "Nordstrom",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Nordstrom/hello-retail/issues"
+  },
+  "homepage": "https://github.com/Nordstrom/hello-retail/product-catalog#readme",
+  "dependencies": {
+    "kinesis-handler": "git+https://github.com/Nordstrom/kinesis-handler.git",
+    "uuid": "^8.1.0"
+  }
+}

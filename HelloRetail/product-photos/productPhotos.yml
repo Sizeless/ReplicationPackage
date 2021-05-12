@@ -1,0 +1,119 @@
+#TODO REMOVE AND REPLACE
+bucket: hello-retail.biz
+bucketArn: arn:aws:s3:::${self:custom.productPhotos.bucket}
+
+# Project
+name: ${self:custom.helloRetail.name}-product-photos
+productPhotosVersion: 1
+
+# Data
+dataName: ${self:custom.productPhotos.name}-data
+exportPhotoRegistrationsTableName: ${self:custom.productPhotos.dataName}:${self:custom.stage}:PhotoRegistrationsTableName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoRegistrationsTableArn: ${self:custom.productPhotos.dataName}:${self:custom.stage}:PhotoRegistrationsTableArn:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoRegistrationsTableAssignmentsIndexArn: ${self:custom.productPhotos.dataName}:${self:custom.stage}:PhotoRegistrationsTableAssignmentsIndexArn:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsTableName: ${self:custom.productPhotos.dataName}:${self:custom.stage}:PhotoAssignmentsTableName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsTableArn: ${self:custom.productPhotos.dataName}:${self:custom.stage}:PhotoAssignmentsTableArn:${self:custom.productPhotos.productPhotosVersion}
+
+# Lambdas
+processorName: ${self:custom.productPhotos.name}-processor
+
+assignName: ${self:custom.productPhotos.name}-assign
+exportPhotoAssignmentsAssignLambdaName: ${self:custom.productPhotos.assignName}:${self:custom.stage}:PhotoAssignmentsAssignLambdaName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsAssignLambdaArn: ${self:custom.productPhotos.assignName}:${self:custom.stage}:PhotoAssignmentsAssignLambdaArn:${self:custom.productPhotos.productPhotosVersion}
+
+receiveName: ${self:custom.productPhotos.name}-receive
+exportPhotoAssignmentsReceiveLambdaName: ${self:custom.productPhotos.receiveName}:${self:custom.stage}:PhotoAssignmentsReceiveLambdaName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsReceiveLambdaArn: ${self:custom.productPhotos.receiveName}:${self:custom.stage}:PhotoAssignmentsReceiveLambdaArn:${self:custom.productPhotos.productPhotosVersion}
+
+failName: ${self:custom.productPhotos.name}-fail
+exportPhotoAssignmentsFailLambdaName: ${self:custom.productPhotos.failName}:${self:custom.stage}:PhotoAssignmentsFailLambdaName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsFailLambdaArn: ${self:custom.productPhotos.failName}:${self:custom.stage}:PhotoAssignmentsFailLambdaArn:${self:custom.productPhotos.productPhotosVersion}
+
+successName: ${self:custom.productPhotos.name}-success
+exportPhotoAssignmentsSuccessLambdaName: ${self:custom.productPhotos.successName}:${self:custom.stage}:PhotoAssignmentsSuccessLambdaName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsSuccessLambdaArn: ${self:custom.productPhotos.successName}:${self:custom.stage}:PhotoAssignmentsSuccessLambdaArn:${self:custom.productPhotos.productPhotosVersion}
+
+reportName: ${self:custom.productPhotos.name}-report
+exportPhotoAssignmentsReportLambdaName: ${self:custom.productPhotos.reportName}:${self:custom.stage}:PhotoAssignmentsReportLambdaName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsReportLambdaArn: ${self:custom.productPhotos.reportName}:${self:custom.stage}:PhotoAssignmentsReportLambdaArn:${self:custom.productPhotos.productPhotosVersion}
+
+# Activities
+receiveActivityName: ${self:custom.stage}-${self:custom.productPhotos.name}-receive
+receiveActivityArn: arn:aws:states:${self:custom.private.region}:${env:ACCOUNT_ID}:activity:${self:custom.productPhotos.receiveActivityName}
+
+# Step Function
+processName: ${self:custom.productPhotos.name}-process
+exportPhotoAssignmentsStepFunctionName: ${self:custom.productPhotos.processName}:${self:custom.stage}:PhotoAssignmentsStepFunctionName:${self:custom.productPhotos.productPhotosVersion}
+exportPhotoAssignmentsStepFunctionArn: ${self:custom.productPhotos.processName}:${self:custom.stage}:PhotoAssignmentsStepFunctionArn:${self:custom.productPhotos.productPhotosVersion}
+
+# Policies
+getPhotoRegistrations:
+  PolicyName: GetPhotoRegistrations
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:GetItem'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoRegistrationsTableArn}
+putPhotoRegistrations:
+  PolicyName: PutPhotoRegistrations
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:PutItem'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoRegistrationsTableArn}
+updatePhotoRegistrations:
+  PolicyName: UpdatePhotoRegistrations
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:UpdateItem'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoRegistrationsTableArn}
+queryPhotoRegistrationsAssignmentsIndex:
+  PolicyName: QueryPhotoRegistrationsAssignmentsIndex
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:Query'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoRegistrationsTableAssignmentsIndexArn}
+getPhotoAssignment:
+  PolicyName: GetPhotoAssignment
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:GetItem'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsTableArn}
+updatePhotoAssignment:
+  PolicyName: UpdatePhotoAssignment
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:UpdateItem'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsTableArn}
+deletePhotoAssignment:
+  PolicyName: DeletePhotoAssignment
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      -  Effect: Allow
+         Action:
+           - 'dynamodb:DeleteItem'
+         Resource:
+          'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsTableArn}

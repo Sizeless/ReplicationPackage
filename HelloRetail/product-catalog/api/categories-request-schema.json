@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "categories/request",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "properties": {
+    "path":                   { "type": "string", "pattern": "^/categories$" },
+    "httpMethod":             { "type": "string", "pattern": "^GET$" }
+  },
+  "required": [
+    "path",
+    "httpMethod"
+  ],
+  "additionalProperties": true
+}

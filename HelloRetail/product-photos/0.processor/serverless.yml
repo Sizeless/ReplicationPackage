@@ -1,0 +1,119 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.productPhotos.processorName}
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../../private.yml)}
+  helloRetail: ${file(../../helloRetail.yml)}
+  retailStream: ${file(../../retail-stream/serverless.yml)}
+  retailStreamVersion: 1
+  productPhotos: ${file(../productPhotos.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+  memorySize: ${env:MEMORY_SIZE}
+  iam:
+    role:
+      statements: # permissions for all of your functions can be set here
+        - Effect: Allow
+          Action: # Gives permission to DynamoDB tables in a specific region
+            - dynamodb:PutItem
+          Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${MetricsTablePhotoProcessor}"
+
+functions:
+  processor:
+    role:
+      'Fn::GetAtt': [ ProcessorRole, Arn ]
+    handler: processor.processKinesisEvent
+    environment:
+      STAGE: ${self:custom.stage}
+      STEP_FUNCTION:
+        'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsStepFunctionArn}
+      TABLE_PHOTO_REGISTRATIONS_NAME:
+        'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoRegistrationsTableName}
+    events:
+      - stream:
+          arn: arn:aws:kinesis:${self:provider.region}:${env:ACCOUNT_ID}:stream/${self:custom.stage}RetailStream
+          enabled: true
+          startingPosition: TRIM_HORIZON
+
+resources:
+  Resources:
+    MetricsTablePhotoProcessor:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: metrics.photo-processor
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # Log Group
+    ProcessorLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: '/aws/lambda/${self:service}-${self:custom.stage}-processor'
+        RetentionInDays: 7
+    # Role
+    ProcessorRole: # role for the photo assignment step function execution kick-off lambda
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}ProductPhotosProcessor${self:custom.productPhotos.productPhotosVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: CreateAndWriteToLogStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogStream'
+                  Resource:
+                    'Fn::GetAtt': [ ProcessorLogGroup, Arn ]
+                - Effect: Allow
+                  Action:
+                    - 'logs:PutLogEvents'
+                  Resource:
+                    'Fn::Join':
+                      - ':'
+                      - - 'Fn::GetAtt': [ ProcessorLogGroup, Arn ]
+                        - '*'
+          - PolicyName: ReadFromKinesis
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'kinesis:GetRecords'
+                    - 'kinesis:GetShardIterator'
+                    - 'kinesis:DescribeStream'
+                    - 'kinesis:ListStreams'
+                  Resource:
+                    Fn::ImportValue: ${self:custom.retailStream.custom.exportRetailStreamArn}
+          - ${self:custom.productPhotos.putPhotoRegistrations}
+          - ${self:custom.productPhotos.updatePhotoRegistrations}
+          - PolicyName: ExecuteStepFunction  # see https://forums.aws.amazon.com/thread.jspa?messageID=755476&tstart=0 for StepFunction IAM docs
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'states:StartExecution'
+                  Resource:
+                    'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsStepFunctionArn}

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "product/image",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "properties": {
+    "schema":  { "type": "string", "format": "url" },
+    "id": { "type": "string" },
+    "image":  { "type": "string" }
+  },
+  "required": [
+    "schema",
+    "id",
+    "image"
+  ],
+  "additionalProperties": false
+}

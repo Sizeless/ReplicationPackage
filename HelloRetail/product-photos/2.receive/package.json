@@ -1,0 +1,20 @@
+{
+  "name": "receive",
+  "version": "0.0.1",
+  "description": "",
+  "main": "recevie.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
+  },
+  "author": "Erik Erikson <erik.m.erikson@nordstrom.com>",
+  "license": "ISC",
+  "dependencies": {
+    "ajv": "^4.11.3",
+    "bluebird": "^3.4.7",
+    "snyk": "^1.316.1",
+    "uuid": "^8.1.0"
+  },
+  "snyk": true
+}

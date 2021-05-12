@@ -1,0 +1,19 @@
+{
+  "name": "hello-retail-product-photos-report",
+  "version": "0.0.1",
+  "description": "A stream producer that emits a product photo event onto the stream",
+  "main": "report.js",
+  "scripts": {
+    "test": "echo \"Error: tests executed by root hello-retail package.json\" && exit 1"
+  },
+  "author": "Nordstrom",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Nordstrom/hello-retail/issues"
+  },
+  "homepage": "https://github.com/Nordstrom/hello-retail/product-photos#readme",
+  "dependencies": {
+    "ajv": "^4.10.4",
+    "uuid": "^8.1.0"
+  }
+}

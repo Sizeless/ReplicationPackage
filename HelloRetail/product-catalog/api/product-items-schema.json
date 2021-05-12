@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "product/items",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "array",
+  "items": {
+    "type": "object",
+    "properties": {
+      "id":           { "type": "string", "pattern": "^[\\d]+$" },
+      "brand":        { "type": "string" },
+      "name":         { "type": "string" },
+      "description":  { "type": "string" },
+      "image":        { "type": "string" }
+    },
+    "required": [
+      "id",
+      "brand",
+      "name",
+      "description"
+    ],
+    "additionalProperties": false
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,104 @@
+# State Machine (AWS StepFunction for Acquiring an Image from a registered Photographer)
+Comment: Aquire a photograph of the given product from one of the registered photographers
+StartAt: WaitForPhoto
+States:
+  WaitForPhoto:
+    Type: Parallel
+    Branches:
+      - StartAt: AssignPhotographer
+        States:
+          AssignPhotographer:
+            Type: Task
+            Resource: arn:aws:lambda:${self:custom.private.region}:${env:ACCOUNT_ID}:function:${self:custom.productPhotos.assignName}-${self:custom.stage}-assign
+            Retry:
+              - ErrorEquals:
+                  - States.ALL
+                IntervalSeconds: 1
+                MaxAttempts: 2
+                BackoffRate: 2
+            Catch:
+              - ErrorEquals:
+                  - States.ALL
+                Next: AssignPhotographerError
+            Next: AssignPhotographerSuccess
+          AssignPhotographerError:
+            Type: Fail
+            Cause: Repeated Failure Assigning Photographer
+            Error: RepeatedFailure
+          AssignPhotographerSuccess:
+            Type: Succeed
+      - StartAt: AwaitPhoto
+        States:
+          AwaitPhoto:
+            Type: Task
+            Resource: ${self:custom.productPhotos.receiveActivityArn}
+            TimeoutSeconds: 600
+            Catch:
+              - ErrorEquals:
+                  - States.Timeout
+                ResultPath: $.error
+                Next: AwaitPhotoFail
+            Next: AwaitPhotoSucceed
+          AwaitPhotoFail:
+            Type: Task
+            Resource: arn:aws:lambda:${self:custom.private.region}:${env:ACCOUNT_ID}:function:${self:custom.productPhotos.failName}-${self:custom.stage}-fail
+            Retry:
+              - ErrorEquals:
+                  - States.ALL
+                IntervalSeconds: 1
+                MaxAttempts: 2
+                BackoffRate: 2
+            Catch:
+              - ErrorEquals:
+                  - States.ALL
+                Next: AwaitPhotoFailError
+            End: true
+          AwaitPhotoFailError:
+            Type: Fail
+            Cause: Repeated Failure Failing Photographer Assignment
+            Error: RepeatedFailure
+          AwaitPhotoSucceed:
+            Type: Task
+            Resource: arn:aws:lambda:${self:custom.private.region}:${env:ACCOUNT_ID}:function:${self:custom.productPhotos.successName}-${self:custom.stage}-success
+            Retry:
+              - ErrorEquals:
+                  - States.ALL
+                IntervalSeconds: 1
+                MaxAttempts: 2
+                BackoffRate: 2
+            Catch:
+              - ErrorEquals:
+                  - States.ALL
+                Next: AwaitPhotoSucceedError
+            Next: AwaitPhotoSuccess
+          AwaitPhotoSucceedError:
+            Type: Fail
+            Cause: Repeated Failure Failing Photographer Assignment
+            Error: RepeatedFailure
+          AwaitPhotoSuccess:
+            Type: Succeed
+    Next: ExtractResult
+  ExtractResult:
+    InputPath: '$.[1]'
+    Type: 'Pass'
+    Next: CompleteAssignment
+  CompleteAssignment:
+    Type: Task
+    Resource: arn:aws:lambda:${self:custom.private.region}:${env:ACCOUNT_ID}:function:${self:custom.productPhotos.reportName}-${self:custom.stage}-report
+    Retry:
+      - ErrorEquals:
+          - States.ALL
+        IntervalSeconds: 1
+        MaxAttempts: 2
+        BackoffRate: 2
+    Catch:
+      - ErrorEquals:
+          - States.ALL
+        Next: CompleteAssignmentError
+    Next: Finish
+  CompleteAssignmentError:
+    Type: Fail
+    Cause: Repeated Failure Completing Successful Assignment
+    Error: RepeatedFailure
+  Finish:
+    Type: Succeed

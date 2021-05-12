@@ -1,0 +1,223 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.helloRetail.name}-product-catalog-builder
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../../private.yml)}
+  helloRetail: ${file(../../helloRetail.yml)}
+  retailStreamVersion: 1
+  retailStream: ${file(../../retail-stream/serverless.yml)}
+  # Product Catalog Versions & Exports
+  # WARNING: each project that uses these will have to define the following two attributes (custom.productCatalogBuilderVersion, custom.productCatalogBuilder) in its serverless.yml:
+  productCatalogBuilderVersion: 1 # The version of this service to depend upon
+  productCatalogBuilder: ${self:} # externally, use `${file(~/product-catalog/serverless.yml)}`, replacing the `~` therein with the appropriate relative reference [e.g. '..' or '../..']
+  # Exports
+  exportProductCategoryTableName: ${self:custom.productCatalogBuilder.service}:${self:custom.stage}:ProductCategoryTableName:${self:custom.productCatalogBuilderVersion}
+  exportProductCategoryTableArn: ${self:custom.productCatalogBuilder.service}:${self:custom.stage}:ProductCategoryTableArn:${self:custom.productCatalogBuilderVersion}
+  exportProductCatalogTableName: ${self:custom.productCatalogBuilder.service}:${self:custom.stage}:ProductCatalogTableName:${self:custom.productCatalogBuilderVersion}
+  exportProductCatalogTableArn: ${self:custom.productCatalogBuilder.service}:${self:custom.stage}:ProductCatalogTableArn:${self:custom.productCatalogBuilderVersion}
+  exportProductCatalogTableCategoryIndexArn: ${self:custom.productCatalogBuilder.service}:${self:custom.stage}:ProductCatalogTableCategoryIndexArn:${self:custom.productCatalogBuilderVersion}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+  memorySize: ${env:MEMORY_SIZE}
+  iam:
+    role:
+      statements: # permissions for all of your functions can be set here
+        - Effect: Allow
+          Action: # Gives permission to DynamoDB tables in a specific region
+            - dynamodb:PutItem
+          Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${MetricsTableProductCatalogBuilder}"
+
+functions:
+  catalog:
+    role:
+      Fn::GetAtt: [ ProductCatalogBuilder, Arn ]
+    handler: catalog.processKinesisEvent
+    environment:
+      TABLE_PRODUCT_CATEGORY_NAME:
+        Ref: ProductCategory
+      TABLE_PRODUCT_CATALOG_NAME:
+        Ref: ProductCatalog
+    events:
+      - stream:
+          arn: arn:aws:kinesis:${self:provider.region}:${env:ACCOUNT_ID}:stream/${self:custom.stage}RetailStream
+          enabled: true
+          startingPosition: TRIM_HORIZON
+
+resources:
+  Resources:
+    MetricsTableProductCatalogBuilder:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: metrics.product-catalog-builder
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # Log Group
+    CatalogLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: /aws/lambda/${self:service}-${self:custom.stage}-catalog
+        RetentionInDays: 7
+    # Product Catalog Tables
+    ProductCategory:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: category
+            AttributeType: S
+        KeySchema:
+          - AttributeName: category
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.stage}-ProductCategory-${self:custom.productCatalogBuilderVersion}
+    ProductCatalog:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: category
+            AttributeType: S
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.stage}-ProductCatalog-${self:custom.productCatalogBuilderVersion}
+        GlobalSecondaryIndexes:
+          - IndexName: Category
+            KeySchema:
+              - AttributeName: category
+                KeyType: HASH
+              - AttributeName: name
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - brand
+                - description
+    # Product Catalog Roles
+    ProductCatalogBuilder: # role for the Catalog (Maintaining) Lambda
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}ProductCatalogBuilder${self:custom.productCatalogBuilderVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                AWS: # role ARNs that are allowed to write to the Product Catalog
+                  - !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: CreateAndWriteToLogStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogStream'
+                  Resource:
+                    Fn::GetAtt: [ CatalogLogGroup, Arn ]
+                - Effect: Allow
+                  Action:
+                    - 'logs:PutLogEvents'
+                  Resource:
+                    Fn::Join:
+                      - ':'
+                      - - Fn::GetAtt: [ CatalogLogGroup, Arn ]
+                        - '*'
+          - PolicyName: ReadFromKinesis
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'kinesis:GetRecords'
+                    - 'kinesis:GetShardIterator'
+                    - 'kinesis:DescribeStream'
+                    - 'kinesis:ListStreams'
+                  Resource:
+                    Fn::ImportValue: ${self:custom.retailStream.custom.exportRetailStreamArn}
+          - PolicyName: WriteToCatalog
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:UpdateItem'
+                   Resource:
+                    Fn::Join:
+                      - '/'
+                      - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+                        - Ref: ProductCategory
+                -  Effect: Allow
+                   Action:
+                     - 'dynamodb:UpdateItem'
+                   Resource:
+                    Fn::Join:
+                      - '/'
+                      - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+                        - Ref: ProductCatalog
+
+  Outputs:
+    ProductCategoryTableName:
+      Description: The Name of the Product Category Table
+      Value:
+        Ref: ProductCategory
+      Export:
+        Name: ${self:custom.productCatalogBuilder.custom.exportProductCategoryTableName}
+    ProductCategoryTableArn:
+      Description: The ARN for the Product Category Table
+      Value:
+        Fn::Join:
+          - '/'
+          - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+            - Ref: ProductCategory
+      Export:
+        Name: ${self:custom.productCatalogBuilder.custom.exportProductCategoryTableArn}
+    ProductCatalogTableName:
+      Description: The Name of the Product Catalog Table
+      Value:
+        Ref: ProductCatalog
+      Export:
+        Name: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableName}
+    ProductCatalogTableArn:
+      Description: The ARN for the Product Catalog Table
+      Value:
+        Fn::Join:
+          - '/'
+          - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+            - Ref: ProductCatalog
+      Export:
+        Name: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableArn}
+    ProductCatalogTableCategoryIndexArn:
+      Description: The ARN for the Product Catalog Table's Category Index
+      Value:
+        Fn::Join:
+          - '/'
+          - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+            - Ref: ProductCatalog
+            - index
+            - Category
+      Export:
+        Name: ${self:custom.productCatalogBuilder.custom.exportProductCatalogTableCategoryIndexArn}

@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "products/request",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "properties": {
+    "path":                   { "type": "string", "pattern": "^/products$" },
+    "httpMethod":             { "type": "string", "pattern": "^GET$" },
+    "queryStringParameters":  {
+      "type": "object",
+      "properties": {
+        "category":           { "type": "string" },
+		    "id":           	    { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "path",
+    "httpMethod",
+    "queryStringParameters"
+  ],
+  "additionalProperties": true
+}

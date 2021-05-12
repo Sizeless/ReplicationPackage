@@ -1,0 +1,19 @@
+{
+  "name": "assign-photographer",
+  "version": "0.0.1",
+  "description": "A Lambda function for assigning a photographer to take a product image.",
+  "main": "assign.js",
+  "scripts": {
+    "test": "echo \"Error: tests executed by root hello-retail package.json\" && exit 1"
+  },
+  "author": "Nordstrom",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Nordstrom/hello-retail/issues"
+  },
+  "homepage": "https://github.com/Nordstrom/hello-retail/product-photos#readme",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "uuid": "^8.1.0"
+  }
+}

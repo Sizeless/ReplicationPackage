@@ -1,0 +1,129 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.productPhotos.receiveName}
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../../private.yml)}
+  helloRetail: ${file(../../helloRetail.yml)}
+  productPhotos: ${file(../productPhotos.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+  memorySize: ${env:MEMORY_SIZE}
+  iam:
+    role:
+      statements: # permissions for all of your functions can be set here
+        - Effect: Allow
+          Action: # Gives permission to DynamoDB tables in a specific region
+            - dynamodb:PutItem
+          Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${MetricsTablePhotoReceive}"
+
+functions:
+  receive:
+    role:
+      Fn::GetAtt: [ ReceiveRole, Arn ]
+    handler: receive.handler
+    timeout: 30
+    environment:
+      IMAGE_BUCKET: ${self:custom.productPhotos.bucket}
+      ENDPOINT:
+        Fn::Join:
+          - ''
+          - - https://
+            - Ref: ApiGatewayRestApi
+            - .execute-api.us-west-2.amazonaws.com/${self:custom.stage}/sms
+      TABLE_PHOTO_ASSIGNMENTS_NAME:
+        Fn::ImportValue: ${self:custom.productPhotos.exportPhotoAssignmentsTableName}
+    events:
+      - http:
+          path: sms
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    MetricsTablePhotoReceive:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: metrics.photo-receive
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+
+    # Log Group
+    ReceiveLogGroup:
+      Type: AWS::Logs::LogGroup
+      Properties:
+        LogGroupName: '/aws/lambda/${self:service}-${self:custom.stage}-receive'
+        RetentionInDays: 7
+    # Roles
+    ReceiveRole: # role for Categories Lambda
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /
+        RoleName: ${self:custom.stage}ReceiveRole${self:custom.productPhotos.productPhotosVersion}
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: lambda.amazonaws.com
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+          - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        Policies:
+          - PolicyName: CreateAndWriteToLogStream
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'logs:CreateLogStream'
+                  Resource:
+                    Fn::GetAtt: [ ReceiveLogGroup, Arn ]
+                - Effect: Allow
+                  Action:
+                    - 'logs:PutLogEvents'
+                  Resource:
+                    Fn::Join:
+                      - ':'
+                      - - Fn::GetAtt: [ ReceiveLogGroup, Arn ]
+                        - '*'
+          - ${self:custom.productPhotos.getPhotoAssignment}
+          - PolicyName: StoreImageInBucket
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 's3:putObject'
+                  Resource: ${self:custom.productPhotos.bucketArn}/i/p/*
+          - PolicyName: SucceedActivityTask
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - 'states:SendTaskSuccess'
+                  Resource: ${self:custom.productPhotos.receiveActivityArn}
+  Outputs:
+    ReceiveLambdaName:
+      Description: The Name of the Photo Assignments Receive Lambda
+      Value:
+        Ref: ReceiveLambdaFunction
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoAssignmentsReceiveLambdaName}
+    ReceiveLambdaArn:
+      Description: The Name of the Photo Assignments Receive Lambda
+      Value:
+        'Fn::GetAtt': [ ReceiveLambdaFunction, Arn ]
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoAssignmentsReceiveLambdaArn}

@@ -1,0 +1,101 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.productPhotos.dataName}
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../../private.yml)}
+  helloRetail: ${file(../../helloRetail.yml)}
+  productPhotos: ${file(../productPhotos.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+
+resources:
+  Resources:
+    # A DynamoDB table for recording the assignments that a photographer has 1) registered for and 2) completed.  The
+    # hash key will be the unique ID of a photographer and the record will additionally contain the total registrations
+    # for the photographer with the given ID as well as completed assignments, the last eventId used to register, and
+    # a TTL for the record.
+    PhotoRegistrations:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: assignments
+            AttributeType: N
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.stage}-${self:service}-PhotoRegistrations-${self:custom.productPhotos.productPhotosVersion}
+        GlobalSecondaryIndexes:
+          - IndexName: Assignments
+            KeySchema:
+              - AttributeName: assignments
+                KeyType: HASH
+            Projection:
+              ProjectionType: ALL
+    # A DynamoDB table for recording the relationships between photographers and the StepFunctions executions that
+    # have requested that they take a photograph.  Although only the phone number is the hash key, the table will be
+    # filled with the 'taskToken', 'taskEvent', and assignment 'status' associated with a StepFunction's execution's
+    # current photographer assignment.  This facilitates the timing out of a photographer that took too long to fulfill
+    # their assignment.
+    PhotoAssignments:
+      Type: 'AWS::DynamoDB::Table'
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.stage}-${self:service}-PhotoAssignments-${self:custom.productPhotos.productPhotosVersion}
+  Outputs:
+    # Registrations
+    PhotoRegistrationsTableName:
+      Description: The Name of the Photo Registrations Table
+      Value:
+        Ref: PhotoRegistrations
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoRegistrationsTableName}
+    PhotoRegistrationsTableArn:
+      Description: The ARN for the Photo Registrations Table
+      Value:
+        'Fn::Join':
+          - '/'
+          - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+            - Ref: PhotoRegistrations
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoRegistrationsTableArn}
+    PhotoRegistrationsTableAssignmentsIndexArn:
+      Description: The ARN for the Photo Registrations Table's Assignments Index
+      Value:
+        'Fn::Join':
+          - '/'
+          - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+            - Ref: PhotoRegistrations
+            - index
+            - Assignments
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoRegistrationsTableAssignmentsIndexArn}
+    # Active Assignments
+    PhotoAssignmentsTableName:
+      Description: The Name of the Photo Assignments Table
+      Value:
+        Ref: PhotoAssignments
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoAssignmentsTableName}
+    PhotoAssignmentsTableArn:
+      Description: The ARN for the Photo Assignments Table
+      Value:
+        'Fn::Join':
+          - '/'
+          - - !Sub 'arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table'
+            - Ref: PhotoAssignments
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoAssignmentsTableArn}

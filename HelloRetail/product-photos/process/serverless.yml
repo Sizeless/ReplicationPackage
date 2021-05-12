@@ -1,0 +1,74 @@
+frameworkVersion: "^2.1.0"
+
+service: ${self:custom.productPhotos.processName}
+
+custom:
+  stage: ${opt:stage, self:provider.stage, self:custom.private.stage}
+  private: ${file(../../private.yml)}
+  helloRetail: ${file(../../helloRetail.yml)}
+  retailStream: ${file(../../retail-stream/serverless.yml)}
+  retailStreamVersion: 1
+  productPhotos: ${file(../productPhotos.yml)}
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${self:custom.private.region}
+
+resources:
+  Resources:
+    # Activity
+    ReceiveActivity:
+      Type: 'AWS::StepFunctions::Activity'
+      Properties:
+        Name: ${self:custom.productPhotos.receiveActivityName}
+    # Role
+    StepFunctionRole:
+        Type: AWS::IAM::Role
+        Properties:
+          Path: /
+          RoleName: ${self:custom.stage}ProductPhotosStepFunction${self:custom.productPhotos.productPhotosVersion}
+          AssumeRolePolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Principal:
+                Service: states.${self:custom.private.region}.amazonaws.com
+          ManagedPolicyArns:
+            - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+            - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+          Policies:
+            - PolicyName: InvokeLambdas
+              PolicyDocument:
+                Version: '2012-10-17'
+                Statement:
+                  - Effect: Allow
+                    Action:
+                      - 'lambda:InvokeFunction'
+                    Resource:
+                      - 'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsAssignLambdaArn}
+                      - 'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsReceiveLambdaArn}
+                      - 'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsFailLambdaArn}
+                      - 'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsSuccessLambdaArn}
+                      - 'Fn::ImportValue': ${self:custom.productPhotos.exportPhotoAssignmentsReportLambdaArn}
+    # Step Function
+    StepFunction:
+      Type: 'AWS::StepFunctions::StateMachine'
+      Properties:
+        DefinitionString: '${file(acquirePhoto.js):shim}'
+        RoleArn:
+          'Fn::GetAtt': [ StepFunctionRole, Arn ]
+  Outputs:
+    PhotoAssignmentsStepFunctionName:
+      Description: The name of the Photo Assignments Step Function
+      Value:
+        'Fn::GetAtt': [StepFunction, Name]
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoAssignmentsStepFunctionName}
+    PhotoAssignmentsStepFunctionArn:
+      Description: The ARN of the Photo Assignments Step Function
+      Value:
+        Ref: StepFunction
+      Export:
+        Name: ${self:custom.productPhotos.exportPhotoAssignmentsStepFunctionArn}

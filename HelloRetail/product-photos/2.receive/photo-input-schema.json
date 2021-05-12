@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "self": {
+    "vendor": "com.nordstrom",
+    "name": "product-photos/receive",
+    "format": "jsonschema",
+    "version": "1-0-0"
+  },
+  "type": "object",
+  "properties": {
+    "path":                   { "type": "string", "pattern": "^/sms$" },
+    "httpMethod":             { "type": "string", "pattern": "^POST$" },
+    "headers":                {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "body":                   { "type": "string" }
+  },
+  "required": [
+    "path",
+    "httpMethod",
+    "headers"
+  ],
+  "additionalProperties": true
+}

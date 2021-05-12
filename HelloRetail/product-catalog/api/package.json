@@ -1,0 +1,19 @@
+{
+  "name": "hello-retail-product-catalog-api",
+  "version": "0.0.1",
+  "description": "An API to obtain product and category information from the Product Catalog",
+  "main": "catalogApi.js",
+  "scripts": {
+    "test": "echo \"Error: tests executed by root hello-retail package.json\" && exit 1"
+  },
+  "author": "Nordstrom",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/Nordstrom/hello-retail/issues"
+  },
+  "homepage": "https://github.com/Nordstrom/hello-retail/product-catalog#readme",
+  "dependencies": {
+    "ajv": "^4.10.4",
+    "uuid": "^8.1.0"
+  }
+}
