@@ -167,7 +167,11 @@ Hello Retail is a proof-of-concept serverless architecture for a retail store by
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/helloretail.gif?raw=true" width="800">
 </p>
 
+The Hello Retail application uses Kinesis a a central event bus. All incomming events are validated and written to the eventstream by the function `eventwriter`. New product events are handled by the `product-catalog-builder` function and written to dynamo DB. This triggers the execution of a step functions workflow where first the function `photo-assign` assigns the new product that should be photographed to a photographer. The photographer can now upload the corresponding photo, which is recieved by the function `photo-recieve` and then processed by the function `photo-processor`. Finally the function `photo-report` updates the dynamo db entry for the product. The products can be retrieved via the function `product-catalog-api`.
+
 ### Changelog
+
+
 ### Workload
 For this case study, we configured the following user behavior:
 1. Register a new photographer
