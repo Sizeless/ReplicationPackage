@@ -166,8 +166,18 @@ Hello Retail is a proof-of-concept serverless architecture for a retail store by
 <p align="center">
 <img src="https://github.com/Sizeless/ReplicationPackage/blob/main/images/helloretail.gif?raw=true" width="800">
 </p>
+
 ### Changelog
 ### Workload
+For this case study, we configured the following user behavior:
+1. Register a new photographer
+2. Add a new product
+3. List available categories
+4. List all products for a category
+5. Commit a photo for the new product
+
+This sequence of requests ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 12 users at a total rate of 10 requests per second for ten minutes, resulting in at least 1000 executions per function. 
+
 ### Replicating our measurements
 To replicate our measurements, run the following commands in the folder `FacialRecognition`:
 ```
