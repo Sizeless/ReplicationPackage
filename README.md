@@ -170,7 +170,12 @@ Hello Retail is a proof-of-concept serverless architecture for a retail store by
 The Hello Retail application uses Kinesis a a central event bus. All incomming events are validated and written to the eventstream by the function `eventwriter`. New product events are handled by the `product-catalog-builder` function and written to dynamo DB. This triggers the execution of a step functions workflow where first the function `photo-assign` assigns the new product that should be photographed to a photographer. The photographer can now upload the corresponding photo, which is recieved by the function `photo-recieve` and then processed by the function `photo-processor`. Finally the function `photo-report` updates the dynamo db entry for the product. The products can be retrieved via the function `product-catalog-api`.
 
 ### Changelog
-
+* As with any of the three case studies, we wrapped every function with the resource consumption metrics monitoring and generated a corresponding DynamoDB table for each function where the monitoring data is collected.
+* We adjusted the photographer messaging per SMS over Twilio to an HTTP request.
+* We removed the Amazon Login authentication, so any user role can be assumed at any time.
+* We fixed the out-of-date deployment configuration and many bugs.
+* We removed the stubs for the cart functionality (add to cart, etc.).
+* Removed the requirement to provide AWS credentials.
 
 ### Workload
 For this case study, we configured the following user behavior:
