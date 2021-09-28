@@ -188,7 +188,7 @@ For this case study, we configured the following user behavior:
 This sequence of requests ensures that all functions are executed. For our case study, this behavior is traversed concurrently by 12 users at a total rate of 10 requests per second for ten minutes, resulting in at least 1000 executions per function. 
 
 ### Replicating our measurements
-To replicate our measurements, run the following commands in the folder `FacialRecognition`:
+To replicate our measurements, run the following commands in the folder `HelloRetail`:
 ```
 docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t helloretail
 docker run -d --name helloretail helloretail
