@@ -84,7 +84,6 @@ COPY meta-run.sh /meta-run.sh
 RUN dos2unix /meta-run.sh
 COPY run.sh /run.sh
 RUN dos2unix /run.sh
-RUN sed -i 's/ReplicationPackage/AirlineBooking/awsserverlessairline/g' /ReplicationPackage/AirlineBooking/amplify/.config/project-config.json
 WORKDIR /ReplicationPackage/AirlineBooking
 RUN git add *
 RUN git config --global user.email "you@example.com"
