@@ -254,7 +254,7 @@ Resources:
             Resource: !Sub "arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ThumbnailTable}"
       CodeUri: ../lambda-functions/thumbnail
       Layers: 
-        - arn:aws:lambda:eu-west-1:796602223170:layer:image-magick:1
+        - !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:image-magick:1"
       Environment:
         Variables:
           THUMBNAIL_BUCKET: !Ref ThumbnailS3Bucket
