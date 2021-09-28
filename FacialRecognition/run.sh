@@ -8,6 +8,25 @@ git merge main --no-edit
 git add *
 git commit -m "automerge"
 
+region=eu-west-1
+deployId=$EXP_REPETITION
+ 
+# Variables
+IMAGE_MAGICK_ARN="arn:aws:serverlessrepo:us-east-1:145266761615:applications/image-magick-lambda-layer"
+CS_NAME="sb-${deployId}-im-change-set"
+IMAGE_MAGICK_STACK_NAME="image-magick-cf-sb-${deployId}"
+SFN_NAME="wildrydes-sfn-module-sb-${deployId}"
+ 
+aws --region ${region} serverlessrepo create-cloud-formation-change-set --application-id ${IMAGE_MAGICK_ARN} --stack-name ${IMAGE_MAGICK_STACK_NAME} --change-set-name ${CS_NAME}
+aws --region ${region} cloudformation wait change-set-create-complete --change-set-name ${CS_NAME} --stack-name serverlessrepo-${IMAGE_MAGICK_STACK_NAME}
+aws --region ${region} cloudformation execute-change-set --change-set-name ${CS_NAME} --stack-name serverlessrepo-${IMAGE_MAGICK_STACK_NAME}
+aws --region ${region} cloudformation describe-stacks --stack-name serverlessrepo-${IMAGE_MAGICK_STACK_NAME} --query "Stacks[0].Outputs[0].OutputValue" --output text
+ 
+aws --region ${region} rekognition create-collection --collection-id rider-photos
+aws --region ${region} s3 mb s3://${DEPLOYMENT_BUCKET_NAME}
+aws --region ${region} s3 mb s3://${SFN_NAME}
+aws --region ${region} s3 sync test-images s3://${SFN_NAME}/test-images
+
 aws configure set profile produser
 aws rekognition create-collection --collection-id rider-photos --region eu-west-1
 aws s3 mb s3://wildrydesdeployment
@@ -79,6 +98,7 @@ mv persistmetadata.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/persistmeta
 
 
 # Shutdown
+aws --region ${region} cloudformation delete-stack --stack-name serverlessrepo-${IMAGE_MAGICK_STACK_NAME}
 aws cloudformation delete-stack --stack-name wildrydes
 aws cloudformation wait stack-delete-complete --stack-name wildrydes
 aws s3 rm s3://wild-rydes-sfn-module-us-west-2 --recursive
