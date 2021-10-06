@@ -56,7 +56,9 @@ functions:
   format_temperature:
     handler: formatprocessing.formatTemperatureEvent
     events:
-      - sns: ${self:custom.temperature_format_topic}
+      - sns:
+          arn: !Ref TemperatureTopic
+          topicName: ${self:custom.temperature_format_topic}
     onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.error_topic}
     environment:
       QUEUE_NAME: ${self:custom.sqs_queue_name}
@@ -64,7 +66,9 @@ functions:
   format_forecast:
     handler: formatprocessing.formatForecastEvent
     events:
-      - sns: ${self:custom.forecast_format_topic}
+      - sns:
+          arn: !Ref ForecastTopic
+          topicName: ${self:custom.forecast_format_topic}
     onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.error_topic}
     environment:
       QUEUE_NAME: ${self:custom.sqs_queue_name}
@@ -72,7 +76,9 @@ functions:
   format_state_change:
     handler: formatprocessing.formatStateChangeEvent
     events:
-      - sns: ${self:custom.state_change_format_topic}
+      - sns:
+          arn: !Ref StateChangeTopic
+          topicName: ${self:custom.state_change_format_topic}
     onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:${self:custom.error_topic}
     environment:
       QUEUE_NAME: ${self:custom.sqs_queue_name}
@@ -80,7 +86,9 @@ functions:
   format_func_on_error:
     handler: formatprocessing.handleErr
     events:
-      - sns: ${self:custom.error_topic}
+      - sns:
+          arn: !Ref ErrorTopic
+          topicName: ${self:custom.error_topic}
   event_inserter:
     handler: eventinserter.insertEvent
     timeout: 45
@@ -328,6 +336,23 @@ resources:
           Ref: AuroraRDSInstanceParameter
         DBClusterIdentifier:
           Ref: AuroraRDSCluster
+
+    TemperatureTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.temperature_format_topic}
+    ForecastTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.forecast_format_topic}
+    StateChangeTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.state_change_format_topic}
+    ErrorTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: ${self:custom.error_topic}
 
     SNSDynamoEndpoint:
       Type: AWS::EC2::VPCEndpoint
