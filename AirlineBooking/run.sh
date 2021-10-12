@@ -1,11 +1,5 @@
 #!/bin/bash
 set -e
-
-export GIT_MERGE_AUTOEDIT=no
-git pull
-git checkout $EXP_BRANCH
-git pull
-git merge main --no-edit
 STARTTIME=$(date +%s)
 
 ##
@@ -36,7 +30,7 @@ CODEGEN="{\
 REACTCONFIG="{\
 \"SourceDir\":\"src/frontend\",\
 \"DistributionDir\":\"src/frontend/dist\",\
-\"BuildCommand\":\"bash ./build.sh\",\
+\"BuildCommand\":\"bash ./files/build.sh\",\
 \"StartCommand\":\"npm run serve\"\
 }"
 FRONTEND="{\
@@ -55,11 +49,11 @@ echo "# Environment data extration: Starting..."
 export STACK_NAME=$(jq -r '.providers.awscloudformation.StackName' ./amplify/#current-cloud-backend/amplify-meta.json)
 export DEPLOYMENT_BUCKET_NAME=$(jq -r '.providers.awscloudformation.DeploymentBucketName' ./amplify/#current-cloud-backend/amplify-meta.json)
 export AWS_DEFAULT_REGION=$(jq -r '.providers.awscloudformation.Region' amplify/#current-cloud-backend/amplify-meta.json)
-export GRAPHQL_API_ID=$(jq -r '.api[(.api | keys)[0]].output.GraphQLAPIIdOutput' ./amplify/#current-cloud-backend/amplify-meta.json)
-export GRAPHQL_URL=$(jq -r '.api[(.api | keys)[0]].output.GraphQLAPIEndpointOutput' ./amplify/#current-cloud-backend/amplify-meta.json)
-export COGNITO_USER_POOL_ID=$(jq -r '.auth[(.auth | keys)[0]].output.UserPoolId' ./amplify/#current-cloud-backend/amplify-meta.json)
+export GRAPHQL_API_ID=$(jq -r '.api[(.api | keys)[0]].output.GraphQLAPIIdOutput' ./amplify/#current-cloud-backend/amplify-meta.json) # TODO
+export GRAPHQL_URL=$(jq -r '.api[(.api | keys)[0]].output.GraphQLAPIEndpointOutput' ./amplify/#current-cloud-backend/amplify-meta.json) # TODO
+export COGNITO_USER_POOL_ID=$(jq -r '.auth[(.auth | keys)[0]].output.UserPoolId' ./amplify/#current-cloud-backend/amplify-meta.json) # TODO
 export COGNITO_USER_POOL_ARN=$(aws cognito-idp describe-user-pool --user-pool-id ${COGNITO_USER_POOL_ID} --query 'UserPool.Arn' --output text)
-export COGNITO_USER_POOL_CLIENT_ID=$(jq -r '.auth[(.auth | keys)[0]].output.AppClientIDWeb' ./amplify/#current-cloud-backend/amplify-meta.json)
+export COGNITO_USER_POOL_CLIENT_ID=$(jq -r '.auth[(.auth | keys)[0]].output.AppClientIDWeb' ./amplify/#current-cloud-backend/amplify-meta.json) # TODO
 aws appsync list-data-sources --api-id ${GRAPHQL_API_ID} > datasources.json
 export FLIGHT_TABLE_NAME=$(jq -r '.dataSources[] | select(.name == "FlightTable") | .dynamodbConfig.tableName' datasources.json)
 export BOOKING_TABLE_NAME=$(jq -r '.dataSources[] | select(.name == "BookingTable") | .dynamodbConfig.tableName' datasources.json)
@@ -97,8 +91,8 @@ echo "# Sam-based backed deployment: Finished!"
 # Add hosting and publish
 ##
 echo "# Frontend deployment: Starting..."
-expect addhosting.sh
-amplify publish --yes
+./files/addhosting.sh
+amplify publish --yes | tee amplify_publish_logs.txt
 echo "# Frontend deployment: Finished!"
 
 
@@ -124,22 +118,22 @@ echo "# User generation: Finished!"
 # Add flights
 ##
 echo "# Flight generation: Starting..."
-node genflights.js
-./genFlights.sh
+node files/genflights.js
+./files/genFlights.sh
 echo "# Flight generation: Finished!"
 
 ##
 # Parameterizing load script
 ##
 echo "# Loadscript parameterization: Starting..."
-export FRONTEND_URL=$(cat ./src/frontend/aws-exports.js | grep -oP 'aws_content_delivery_url": ".*"' | grep -oP ' ".*' | grep -oP '[a-zA-Z0-9/:\.\-_]*')
-sed -i "s@GRAPHQL_PLACEHOLDER@$GRAPHQL_URL@g" load.lua
+export FRONTEND_URL=$(cat ./amplify_publish_logs.txt | grep -o 'https://.*\.amplifyapp\.com')
+sed -i "s@GRAPHQL_PLACEHOLDER@$GRAPHQL_URL@g" load/load.lua
 export PAYMENT_CHARGE_URL=$(aws ssm get-parameter --name /${AWS_BRANCH}/service/payment/api/charge/url --query 'Parameter.Value' --output text)
-sed -i "s@CHARGEURL_PLACEHOLDER@$PAYMENT_CHARGE_URL@g" load.lua
+sed -i "s@CHARGEURL_PLACEHOLDER@$PAYMENT_CHARGE_URL@g" load/load.lua
 export KEYS="\"${STRIPE_PUBLIC_KEYS//,/\",\"}\""
-sed -i "s@STRIPE_PUBLIC_KEYS_PLACEHOLDER@$KEYS@g" load.lua
-sed -i "s@USER_IDS_PLACEHOLDER@$userids@g" load.lua
-node generateCognito.js $COGNITO_USER_POOL_ID $COGNITO_USER_POOL_CLIENT_ID
+sed -i "s@STRIPE_PUBLIC_KEYS_PLACEHOLDER@$KEYS@g" load/load.lua
+sed -i "s@USER_IDS_PLACEHOLDER@$userids@g" load/load.lua
+node files/generateCognito.js $COGNITO_USER_POOL_ID $COGNITO_USER_POOL_CLIENT_ID
 echo "# Loadscript parameterization: Finished!"
 
 ##
@@ -158,35 +152,39 @@ echo "It took $(($ENDTIME - $STARTTIME)) seconds to deploy the serverless airlin
 ##
 # Run experiment
 ##
+cd load
 echo "# Experiment: Starting..."
 java -jar httploadgenerator.jar loadgenerator > loadlogs.txt 2>&1 &
 ./generateConstantLoad.sh $EXP_LOAD $EXP_DURATION
 sleep 10
 java -jar httploadgenerator.jar director --ip localhost --load load.csv -o results.csv --lua load.lua --randomize-users -t $EXP_THREATS
+cd ..
 echo "# Experiment: Finished!"
 
 ##
 # Collect logs
 echo "# Log collection: Starting..."
-mkdir -p /results/$EXP_NAME/Repetition_$EXP_REPETITION
-mv timestamps.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/timestamps.csv
-mv results.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/results.csv
-mv loadlogs.txt /results/$EXP_NAME/Repetition_$EXP_REPETITION/loadlogs.txt
-chmod 777 fetchEvalMetrics
-./fetchEvalMetrics
-mv long.ma.loyalty-get-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.loyalty-get-metrics.csv
-mv long.ma.reserve-booking-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.reserve-booking-metrics.csv
-mv long.ma.notify-booking-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.notify-booking-metrics.csv
-mv long.ma.confirm-booking-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.confirm-booking-metrics.csv
-mv long.ma.capture-stripe-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.capture-stripe-metrics.csv
-mv long.ma.charge-stripe-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.charge-stripe-metrics.csv
-mv long.ma.collect-payment-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.collect-payment-metrics.csv
-mv long.ma.loyalty-ingest-metrics.csv /results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.loyalty-ingest-metrics.csv
+mkdir -p results/$EXP_NAME/Repetition_$EXP_REPETITION
+mv load/timestamps.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/timestamps.csv
+mv load/results.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/results.csv
+mv load/loadlogs.txt results/$EXP_NAME/Repetition_$EXP_REPETITION/loadlogs.txt
+./files/fetchEvalMetrics
+mv long.ma.loyalty-get-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.loyalty-get-metrics.csv
+mv long.ma.reserve-booking-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.reserve-booking-metrics.csv
+mv long.ma.notify-booking-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.notify-booking-metrics.csv
+mv long.ma.confirm-booking-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.confirm-booking-metrics.csv
+mv long.ma.capture-stripe-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.capture-stripe-metrics.csv
+mv long.ma.charge-stripe-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.charge-stripe-metrics.csv
+mv long.ma.collect-payment-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.collect-payment-metrics.csv
+mv long.ma.loyalty-ingest-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.loyalty-ingest-metrics.csv
+mv long.ma.cancel-booking-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.cancel-booking-metrics.csv
+mv long.ma.refund-payment-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.refund-payment-metrics.csv
+mv long.ma.refund-stripe-metrics.csv results/$EXP_NAME/Repetition_$EXP_REPETITION/long.ma.refund-stripe-metrics.csv
 
 sleep 1500
-awslogs groups | awk '{print $1}' | grep -v ^$ | while read x; do echo "Collecting logs for $x"; awslogs get $x ALL -s1d --timestamp --filter-pattern="[r=REPORT,...]" >> /results/$EXP_NAME/Repetition_$EXP_REPETITION/${x/\/aws\/lambda\/}.txt; done
-awslogs groups | awk '{print $1}' | grep -v ^$ | while read x; do echo "1/2 Collecting warmup logs for $x"; awslogs get $x ALL -s1d --timestamp --filter-pattern="[a,b,c,r=COLDSTART,...]" >> /results/$EXP_NAME/Repetition_$EXP_REPETITION/${x/\/aws\/lambda\/}_coldstarts.txt; done
-awslogs groups | awk '{print $1}' | grep -v ^$ | while read x; do echo "2/2 Collecting warmup logs for $x"; awslogs get $x ALL -s1d --timestamp --filter-pattern="[r=COLDSTART,...]" >> /results/$EXP_NAME/Repetition_$EXP_REPETITION/${x/\/aws\/lambda\/}_coldstarts.txt; done
+awslogs groups | awk '{print $1}' | grep -v ^$ | while read x; do echo "Collecting logs for $x"; awslogs get $x ALL -s1d --timestamp --filter-pattern="[r=REPORT,...]" >> results/$EXP_NAME/Repetition_$EXP_REPETITION/${x/\/aws\/lambda\/}.txt; done
+awslogs groups | awk '{print $1}' | grep -v ^$ | while read x; do echo "1/2 Collecting warmup logs for $x"; awslogs get $x ALL -s1d --timestamp --filter-pattern="[a,b,c,r=COLDSTART,...]" >> results/$EXP_NAME/Repetition_$EXP_REPETITION/${x/\/aws\/lambda\/}_coldstarts.txt; done
+awslogs groups | awk '{print $1}' | grep -v ^$ | while read x; do echo "2/2 Collecting warmup logs for $x"; awslogs get $x ALL -s1d --timestamp --filter-pattern="[r=COLDSTART,...]" >> results/$EXP_NAME/Repetition_$EXP_REPETITION/${x/\/aws\/lambda\/}_coldstarts.txt; done
 echo "# Log collection: Finished!"
 
 ##
@@ -211,5 +209,10 @@ set -e
 aws cloudformation delete-stack --stack-name api-lambda-stripe-charge
 pkill -f 'java -jar'
 pkill -f 'java -jar'
-git stash --include-untracked
+
+rm amplify_publish_logs.txt
+rm data.json
+rm datasources.json
+rm flights.json
+
 echo "# Shutdown: Finished!"

@@ -8,7 +8,7 @@ export EXP_REPETITION_COUNTS=()
 export EXP_THREAT_COUNTS=()
 export EXP_COUNTS=()
 
-for filename in /measurementplans/*.json; do
+for filename in measurementplans/*.json; do
     EXP_NAMES+=($(jq -r '.name' $filename))
     EXP_BRANCHES+=($(jq -r '.branch' $filename))
     EXP_DURATIONS+=($(jq -r '.duration' $filename))
@@ -45,7 +45,7 @@ do
 			echo $EXP_THREATS
 			echo $EXP_REPETITION
 			echo "---"
-			/run.sh
+			./run.sh
 		fi
 	done
 done

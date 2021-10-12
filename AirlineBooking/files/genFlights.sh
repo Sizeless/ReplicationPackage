@@ -5,4 +5,4 @@ export COGNITO_USER_POOL_CLIENT_ID=$(jq -r '.auth[(.auth | keys)[0]].output.AppC
 
 FLIGHTS="{\"query\": \"$(echo $(tr '\n' ' ' < flights.json) | sed 's/[""]/\\\"/g')\"}"
 echo $FLIGHTS >> data.json
-expect ./cognitocurl.sh $COGNITO_USER_POOL_ID $COGNITO_USER_POOL_CLIENT_ID $GRAPHQL_URL
+expect ./files/cognitocurl.sh $COGNITO_USER_POOL_ID $COGNITO_USER_POOL_CLIENT_ID $GRAPHQL_URL

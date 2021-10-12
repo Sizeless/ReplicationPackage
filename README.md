@@ -45,16 +45,16 @@ This sequence of requests ensures that all functions are executed. For our case 
 ### Replicating our measurements
 To replicate our measurements, run the following commands in the folder `AirlineBooking`:
 ```
-docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY . -t airlinebooking
+docker build --build-arg AWS_ACCESS_KEY_ID=YOUR_PUBLIC_KEY --build-arg AWS_SECRET_ACCESS_KEY=YOUR_SECRET_KEY --build-arg STRIPE_PUBLIC_KEYS=YOUR_KEYS --build-arg STRIPE_SECRET_KEYS=YOUR_KEYS . -t airlinebooking
 docker run -d --name airlinebooking airlinebooking
-docker exec -it airlinebooking bash /ReplicationPackage/FacialRecognition/runner.sh
+docker exec -it airlinebooking bash ./meta-run.sh
 ```
 
 Make sure to replace `YOUR_PUBLIC_KEY` and`YOUR_SECRET_KEY` with your [AWS Credentials](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html). 
 
 To retrieve the collected monitoring data run the following command:
 ```
-docker cp airlinebooking:/results .
+docker cp airlinebooking:/ReplicationPackage/AirlineBooking/results .
 ```
 If the experiments are still running, this command will retrieve the data for the already finished memory sizes and repetitions.
 

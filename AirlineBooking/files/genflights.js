@@ -1,18 +1,18 @@
-const airports =  require("./data/airports.json");
+const airports =  require("../data/airports.json");
 const flightsPerDay = 200;
 const Combinatorics = require('js-combinatorics');
 const fs = require('fs');
 const faker = require('faker');
 const moment = require('moment');
-const timezones =  require("./data/timezones.json");
+const timezones =  require("../data/timezones.json");
 const JSON = require('JSON');
 
 const validAirports = airports.filter(airport => (airport.code && airport.country && airport.city && airport.name));
 console.log("Number of airports from file: ", airports.length);
 console.log("Number of valid airports: ", validAirports.length);
   
-  
-const allFlightRoutes = Combinatorics.bigCombination(airports,2).toArray();
+
+const allFlightRoutes = (new Combinatorics.Combination(airports,2)).toArray();
 console.log("number of combinations: ", allFlightRoutes.length);
 
 //Reduce flight routes based on config

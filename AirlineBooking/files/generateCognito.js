@@ -192,13 +192,13 @@ function continueExec() {
     }
     //Finally, do what you need
 var fs = require('fs')
-fs.readFile("load.lua", 'utf8', function (err,data) {
+fs.readFile("load/load.lua", 'utf8', function (err,data) {
   if (err) {
     return console.log(err);
   }
   var result = data.replace(/COGNITO_TOKEN_PLACEHOLDER/g, res.substring(0, res.length - 2));
 
-  fs.writeFile("load.lua", result, 'utf8', function (err) {
+  fs.writeFile("load/load.lua", result, 'utf8', function (err) {
      if (err) return console.log(err);
   });
 });
