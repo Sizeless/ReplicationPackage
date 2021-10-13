@@ -28,7 +28,7 @@ RUN aws configure set region eu-west-1
 
 RUN npm install -g serverless
 RUN npm install serverless-pseudo-parameters
-RUN serverless config credentials --provider aws --key $AWS_ACCESS_KEY_ID --secret $AWS_SECRET_ACCESS_KEY --profile default
+#RUN serverless config credentials --provider aws --key $AWS_ACCESS_KEY_ID --secret $AWS_SECRET_ACCESS_KEY --profile default
 
 RUN apt-get install openjdk-8-jre-headless --yes
 
